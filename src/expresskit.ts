@@ -3,6 +3,7 @@ import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import {AppRoutes} from './types';
 import {Server} from 'http';
 import {setRoutes} from './router';
+import {setBaseMiddleware} from './base-middleware';
 
 const DEFAULT_PORT = 3030;
 
@@ -24,6 +25,7 @@ export class ExpressKit {
         // https://expressjs.com/en/guide/behind-proxies.html
         this.express.set('trust proxy', this.config.expressTrustProxyNumber ?? true);
 
+        setBaseMiddleware(nodekit.ctx, this.express);
         setRoutes(this.nodekit.ctx, this.express, routes);
     }
 
@@ -37,6 +39,14 @@ export class ExpressKit {
 
         this.nodekit.ctx.log(`Listening on ${listenTarget}`);
 
-        this.httpServer = this.express.listen(listenTarget);
+        this.httpServer = this.express.listen(listenTarget, () => {
+            this.nodekit.ctx.log('App is running');
+        });
+
+        this.nodekit.addShutdownHandler(() => {
+            return new Promise((resolve, reject) => {
+                this.httpServer?.close?.((error) => (error ? reject(error) : resolve));
+            });
+        });
     }
 }
