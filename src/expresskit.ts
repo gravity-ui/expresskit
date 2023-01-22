@@ -2,8 +2,9 @@ import express, {Express} from 'express';
 import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import {AppRoutes} from './types';
 import {Server} from 'http';
-import {setRoutes} from './router';
-import {setBaseMiddleware} from './base-middleware';
+import {setupRoutes} from './router';
+import {setupBaseMiddleware} from './base-middleware';
+import {setupParsers} from './parsers';
 
 const DEFAULT_PORT = 3030;
 
@@ -25,8 +26,9 @@ export class ExpressKit {
         // https://expressjs.com/en/guide/behind-proxies.html
         this.express.set('trust proxy', this.config.expressTrustProxyNumber ?? true);
 
-        setBaseMiddleware(nodekit.ctx, this.express);
-        setRoutes(this.nodekit.ctx, this.express, routes);
+        setupBaseMiddleware(this.nodekit.ctx, this.express);
+        setupParsers(this.nodekit.ctx, this.express);
+        setupRoutes(this.nodekit.ctx, this.express, routes);
     }
 
     run() {

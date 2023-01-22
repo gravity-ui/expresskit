@@ -24,9 +24,8 @@ declare module '@gravity-ui/nodekit' {
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;
 
         expressDisableBodyParserURLEncoded?: boolean;
-        expressBodyParserURLEncoded?: bodyParser.OptionsUrlencoded;
+        expressBodyParserURLEncodedConfig?: bodyParser.OptionsUrlencoded;
 
-        expressEnableBodyParserRaw?: boolean;
         expressBodyParserRawConfig?: bodyParser.Options;
 
         appPort?: number;

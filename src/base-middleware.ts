@@ -3,7 +3,7 @@ import {v4 as uuidv4} from 'uuid';
 import {AppContext} from '@gravity-ui/nodekit';
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
-export function setBaseMiddleware(ctx: AppContext, expressApp: Express) {
+export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
     expressApp.use((req, res, next) => {
         try {
             req.id = (req.headers[DEFAULT_REQUEST_ID_HEADER] || uuidv4()) as string;

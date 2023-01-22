@@ -5,7 +5,7 @@ import {AppErrorHandler, AppMiddleware, AppRoutes, ExpressFinalError} from './ty
 const ALLOWED_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'];
 type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete';
 
-export function setRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
+export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
     Object.keys(routes).forEach((routeKey) => {
         const rawRoute = routes[routeKey];
         const route = typeof rawRoute === 'function' ? {handler: rawRoute} : rawRoute;
