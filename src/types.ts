@@ -32,11 +32,11 @@ declare module '@gravity-ui/nodekit' {
         appSocket?: string;
 
         appFinalErrorHandler?: ErrorRequestHandler;
-        appAuthMethod?: RequestHandler;
+        appAuthHandler?: RequestHandler;
         appAuthPolicy?: AuthPolicy;
 
-        appBeforeAuth?: RequestHandler[];
-        appAfterAuth?: RequestHandler[];
+        appBeforeAuthMiddleware?: RequestHandler[];
+        appAfterAuthMiddleware?: RequestHandler[];
     }
 
     interface AppContextParams {

@@ -26,6 +26,8 @@ export class ExpressKit {
         // https://expressjs.com/en/guide/behind-proxies.html
         this.express.set('trust proxy', this.config.expressTrustProxyNumber ?? true);
 
+        this.express.get('/__version', (_, res) => res.send({version: this.config.appVersion}));
+
         setupBaseMiddleware(this.nodekit.ctx, this.express);
         setupParsers(this.nodekit.ctx, this.express);
         setupRoutes(this.nodekit.ctx, this.express, routes);
