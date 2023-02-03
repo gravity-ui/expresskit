@@ -2,8 +2,8 @@ import {AppContext} from '@gravity-ui/nodekit';
 import {Express} from 'express';
 import {AppErrorHandler, AppMiddleware, AppRoutes, AuthPolicy, ExpressFinalError} from './types';
 
-const ALLOWED_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'];
-type HttpMethod = 'get' | 'head' | 'options' | 'post' | 'put' | 'patch' | 'delete';
+const ALLOWED_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
+type HttpMethod = typeof ALLOWED_METHODS[number];
 
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
@@ -56,9 +56,9 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         };
         Object.defineProperty(handler, 'name', {value: controllerName});
 
+        const routeAuthPolicy = route.authPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
         const authPolicyMiddleware: AppMiddleware = (req, _, next) => {
-            req.routeInfo.authPolicy =
-                route.authPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
+            req.routeInfo.authPolicy = routeAuthPolicy;
             next();
         };
 
@@ -68,7 +68,11 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             ...(route.beforeAuth || []),
         ];
 
-        const authHandler = route.authHandler || ctx.config.appAuthHandler;
+        const authHandler =
+            routeAuthPolicy === AuthPolicy.disabled
+                ? undefined
+                : route.authHandler || ctx.config.appAuthHandler;
+
         if (authHandler) {
             routeMiddleware.push(authHandler);
         }
