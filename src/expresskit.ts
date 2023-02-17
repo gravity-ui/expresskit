@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 import express, {Express} from 'express';
 import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import {AppRoutes} from './types';
@@ -34,22 +36,32 @@ export class ExpressKit {
     }
 
     run() {
+        const appSocket = process.env.APP_SOCKET || this.config.appSocket;
         const listenTarget =
-            process.env.APP_PORT ||
-            this.config.appPort ||
-            process.env.APP_SOCKET ||
-            this.config.appSocket ||
-            DEFAULT_PORT;
+            process.env.APP_PORT || this.config.appPort || appSocket || DEFAULT_PORT;
+        const listenTargetType = appSocket === listenTarget ? 'socket' : 'port';
 
-        this.nodekit.ctx.log(`Listening on ${listenTarget}`);
+        this.nodekit.ctx.log(`Listening on ${listenTargetType} ${listenTarget}`);
+
+        if (appSocket && listenTargetType === 'socket' && fs.existsSync(appSocket)) {
+            fs.unlinkSync(appSocket);
+        }
 
         this.httpServer = this.express.listen(listenTarget, () => {
             this.nodekit.ctx.log('App is running');
+            if (listenTarget === appSocket) {
+                fs.chmod(appSocket, 0o666, (error) => {
+                    if (error instanceof Error) {
+                        this.nodekit.ctx.logError('Socket manipulation error', error);
+                        process.exit(1);
+                    }
+                });
+            }
         });
 
         this.nodekit.addShutdownHandler(() => {
-            return new Promise((resolve, reject) => {
-                this.httpServer?.close?.((error) => (error ? reject(error) : resolve));
+            return new Promise<void>((resolve, reject) => {
+                this.httpServer?.close?.((error) => (error ? reject(error) : resolve()));
             });
         });
     }
