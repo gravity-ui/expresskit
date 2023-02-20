@@ -100,3 +100,5 @@ export interface AppErrorHandler {
         next: NextFunction,
     ): void | Promise<void>;
 }
+
+export {Request, Response};
