@@ -3,7 +3,7 @@ import {Express} from 'express';
 import {AppErrorHandler, AppMiddleware, AppRoutes, AuthPolicy, ExpressFinalError} from './types';
 
 const ALLOWED_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
-type HttpMethod = typeof ALLOWED_METHODS[number];
+type HttpMethod = (typeof ALLOWED_METHODS)[number];
 
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
@@ -56,7 +56,13 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         };
         Object.defineProperty(handler, 'name', {value: controllerName});
 
-        const {authPolicy: routeAuthPolicy, handler: _h, ...restRouteInfo} = route;
+        const {
+            authPolicy: routeAuthPolicy,
+            handler: _h,
+            beforeAuth: _beforeAuth,
+            afterAuth: _afterAuth,
+            ...restRouteInfo
+        } = route;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
         const routeInfoMiddleware: AppMiddleware = (req, _, next) => {
             Object.assign(req.routeInfo, restRouteInfo, {authPolicy});
