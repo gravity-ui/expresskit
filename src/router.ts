@@ -56,14 +56,15 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         };
         Object.defineProperty(handler, 'name', {value: controllerName});
 
-        const routeAuthPolicy = route.authPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
-        const authPolicyMiddleware: AppMiddleware = (req, _, next) => {
-            req.routeInfo.authPolicy = routeAuthPolicy;
+        const {authPolicy: routeAuthPolicy, handler: _h, ...restRouteInfo} = route;
+        const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
+        const routeInfoMiddleware: AppMiddleware = (req, _, next) => {
+            Object.assign(req.routeInfo, restRouteInfo, {authPolicy});
             next();
         };
 
         const routeMiddleware: AppMiddleware[] = [
-            authPolicyMiddleware,
+            routeInfoMiddleware,
             ...(ctx.config.appBeforeAuthMiddleware || []),
             ...(route.beforeAuth || []),
         ];
