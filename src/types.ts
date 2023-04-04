@@ -14,15 +14,6 @@ declare global {
     }
 }
 
-declare module 'express' {
-    export interface Request {
-        id: string;
-        ctx: AppContext;
-        originalContext: AppContext;
-        routeInfo: AppRouteParams;
-    }
-}
-
 declare module '@gravity-ui/nodekit' {
     interface AppConfig {
         expressTrustProxyNumber?: number | boolean;
@@ -46,6 +37,8 @@ declare module '@gravity-ui/nodekit' {
 
         appBeforeAuthMiddleware?: RequestHandler[];
         appAfterAuthMiddleware?: RequestHandler[];
+
+        appTelemetryChEnableSelfStats?: boolean;
     }
 
     interface AppContextParams {
