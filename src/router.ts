@@ -64,8 +64,23 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             ...restRouteInfo
         } = route;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
-        const routeInfoMiddleware: AppMiddleware = (req, _, next) => {
+        const routeInfoMiddleware: AppMiddleware = (req, res, next) => {
             Object.assign(req.routeInfo, restRouteInfo, {authPolicy});
+
+            res.on('finish', () => {
+                if (req.ctx.config.appTelemetryChEnableSelfStats) {
+                    req.ctx.stats({
+                        service: 'self',
+                        action: controllerName,
+                        responseStatus: res.statusCode,
+                        requestId: req.id,
+                        requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
+                        requestMethod: req.method,
+                        requestUrl: req.originalUrl,
+                    });
+                }
+            });
+
             next();
         };
 
