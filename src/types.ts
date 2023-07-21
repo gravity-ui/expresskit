@@ -112,4 +112,4 @@ export interface AppErrorHandler {
     ): void | Promise<void>;
 }
 
-export {Request, Response};
+export {Request, Response, NextFunction};

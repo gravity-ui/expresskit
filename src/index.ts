@@ -8,4 +8,6 @@ export {
     AuthPolicy,
     Request,
     Response,
+    AppErrorHandler,
+    NextFunction,
 } from './types';
