@@ -1,6 +1,6 @@
 {
   "name": "@gravity-ui/expresskit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Express.js wrapper for NodeKit-based apps",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
