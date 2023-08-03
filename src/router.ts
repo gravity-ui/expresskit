@@ -91,7 +91,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         ];
 
         const authHandler =
-            routeAuthPolicy === AuthPolicy.disabled
+            authPolicy === AuthPolicy.disabled
                 ? undefined
                 : route.authHandler || ctx.config.appAuthHandler;
 
