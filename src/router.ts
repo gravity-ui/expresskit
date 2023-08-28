@@ -1,9 +1,21 @@
-import {AppContext} from '@gravity-ui/nodekit';
-import {Express} from 'express';
-import {AppErrorHandler, AppMiddleware, AppRoutes, AuthPolicy, ExpressFinalError} from './types';
+import type {AppContext} from '@gravity-ui/nodekit';
+import {Express, Router} from 'express';
+import {
+    AppErrorHandler,
+    AppMiddleware,
+    AppMountDescription,
+    AppRouteDescription,
+    AppRouteHandler,
+    AppRoutes,
+    AuthPolicy,
+    ExpressFinalError,
+    HttpMethod,
+    HTTP_METHODS,
+} from './types';
 
-const ALLOWED_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
-type HttpMethod = (typeof ALLOWED_METHODS)[number];
+function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
+    return HTTP_METHODS.includes(method as any) || method === 'mount';
+}
 
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
@@ -31,30 +43,44 @@ function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     return result;
 }
 
-export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
-    Object.keys(routes).forEach((routeKey) => {
-        const rawRoute = routes[routeKey];
-        const route = typeof rawRoute === 'function' ? {handler: rawRoute} : rawRoute;
-        const controllerName = route.handler.name || 'unnamedController';
+const UNNAMED_CONTROLLER = 'unnamedController';
+function wrapRouteHandler(fn: AppRouteHandler, controllerName?: string) {
+    const controllerNameLocal = controllerName || fn.name || UNNAMED_CONTROLLER;
 
+    const handler: AppMiddleware = (req, res, next) => {
+        req.ctx = req.originalContext.create(controllerNameLocal);
+        if (req.routeInfo.controllerName !== controllerNameLocal) {
+            if (req.routeInfo.controllerName === UNNAMED_CONTROLLER) {
+                req.routeInfo.controllerName = controllerNameLocal;
+            } else {
+                req.routeInfo.controllerName = `${req.routeInfo.controllerName}(${controllerNameLocal})`;
+            }
+        }
+        Promise.resolve(fn(req, res))
+            .catch(next)
+            .finally(() => {
+                req.ctx.end();
+                req.ctx = req.originalContext;
+            });
+    };
+
+    Object.defineProperty(handler, 'name', {value: controllerNameLocal});
+
+    return handler;
+}
+
+export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
+    Object.entries(routes).forEach(([routeKey, rawRoute]) => {
         const routeKeyParts = routeKey.split(/\s+/);
-        const method: HttpMethod = routeKeyParts[0].toLowerCase() as HttpMethod;
+        const method = routeKeyParts[0].toLowerCase();
         const routePath = routeKeyParts[1];
 
-        if (!ALLOWED_METHODS.includes(method)) {
+        if (!isAllowedMethod(method)) {
             throw new Error(`Unknown http method "${method}" for route "${routePath}"`);
         }
 
-        const handler: AppMiddleware = (req, res, next) => {
-            req.ctx = req.originalContext.create(controllerName);
-            Promise.resolve(route.handler(req, res))
-                .catch(next)
-                .finally(() => {
-                    req.ctx.end();
-                    req.ctx = req.originalContext;
-                });
-        };
-        Object.defineProperty(handler, 'name', {value: controllerName});
+        const route: AppMountDescription | AppRouteDescription =
+            typeof rawRoute === 'function' ? {handler: rawRoute} : rawRoute;
 
         const {
             authPolicy: routeAuthPolicy,
@@ -64,14 +90,16 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             ...restRouteInfo
         } = route;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
-        const routeInfoMiddleware: AppMiddleware = (req, res, next) => {
-            Object.assign(req.routeInfo, restRouteInfo, {authPolicy});
+        const controllerName =
+            restRouteInfo.controllerName || route.handler.name || UNNAMED_CONTROLLER;
+        const routeInfoMiddleware: AppMiddleware = function routeInfoMiddleware(req, res, next) {
+            Object.assign(req.routeInfo, restRouteInfo, {authPolicy, controllerName});
 
             res.on('finish', () => {
                 if (req.ctx.config.appTelemetryChEnableSelfStats) {
                     req.ctx.stats({
                         service: 'self',
-                        action: controllerName,
+                        action: req.routeInfo.controllerName || UNNAMED_CONTROLLER,
                         responseStatus: res.statusCode,
                         requestId: req.id,
                         requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
@@ -104,7 +132,18 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const wrappedMiddleware = routeMiddleware.map(wrapMiddleware);
 
-        expressApp[method](routePath, wrappedMiddleware, handler);
+        if (method === 'mount') {
+            // eslint-disable-next-line new-cap
+            const router = Router({mergeParams: true});
+            const targetApp = (route as AppMountDescription).handler({router, wrapRouteHandler});
+            expressApp.use(routePath, wrappedMiddleware, targetApp || router);
+        } else {
+            const handler = wrapRouteHandler(
+                (route as AppRouteDescription).handler,
+                controllerName,
+            );
+            expressApp[method](routePath, wrappedMiddleware, handler);
+        }
     });
 
     if (ctx.config.appFinalErrorHandler) {

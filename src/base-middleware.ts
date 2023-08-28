@@ -1,6 +1,6 @@
-import {Express} from 'express';
+import type {Express} from 'express';
 import {v4 as uuidv4} from 'uuid';
-import {AppContext} from '@gravity-ui/nodekit';
+import type {AppContext} from '@gravity-ui/nodekit';
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {

@@ -1,6 +1,13 @@
-import {AppContext} from '@gravity-ui/nodekit';
-import bodyParser from 'body-parser';
-import {ErrorRequestHandler, NextFunction, Request, Response, RequestHandler} from 'express';
+import type {AppContext} from '@gravity-ui/nodekit';
+import type bodyParser from 'body-parser';
+import type {
+    ErrorRequestHandler,
+    NextFunction,
+    Request,
+    Response,
+    RequestHandler,
+    Router,
+} from 'express';
 
 declare global {
     // eslint-disable-next-line
@@ -42,7 +49,7 @@ declare module '@gravity-ui/nodekit' {
 
         appFinalErrorHandler?: ErrorRequestHandler;
         appAuthHandler?: RequestHandler;
-        appAuthPolicy?: AuthPolicy;
+        appAuthPolicy?: `${AuthPolicy}`;
 
         appBeforeAuthMiddleware?: RequestHandler[];
         appAfterAuthMiddleware?: RequestHandler[];
@@ -63,7 +70,8 @@ export enum AuthPolicy {
 }
 
 export interface AppRouteParams {
-    authPolicy?: AuthPolicy;
+    authPolicy?: `${AuthPolicy}`;
+    controllerName?: string;
 }
 
 export interface AppRouteDescription extends AppRouteParams {
@@ -73,8 +81,23 @@ export interface AppRouteDescription extends AppRouteParams {
     afterAuth?: AppMiddleware[];
 }
 
+export const HTTP_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
+export type HttpMethod = (typeof HTTP_METHODS)[number];
+
+export interface AppMountHandler {
+    (args: {
+        router: Router;
+        wrapRouteHandler: (fn: AppRouteHandler, controllerName?: string) => AppMiddleware;
+    }): void | Router;
+}
+
+export interface AppMountDescription extends Omit<AppRouteDescription, 'handler'> {
+    handler: AppMountHandler;
+}
+
 export interface AppRoutes {
-    [methodAndPath: string]: AppRouteHandler | AppRouteDescription;
+    [methodAndPath: `${Uppercase<HttpMethod>} ${string}`]: AppRouteHandler | AppRouteDescription;
+    [mountPath: `MOUNT ${string}`]: AppMountHandler | AppMountDescription;
 }
 
 interface ParamsDictionary {

@@ -1,13 +1,17 @@
 export {ExpressKit} from './expresskit';
-export {
+export type {
     AppAuthHandler,
     AppMiddleware,
+    AppMountDescription,
+    AppMountHandler,
     AppRouteDescription,
+    AppRouteHandler,
     AppRouteParams,
     AppRoutes,
-    AuthPolicy,
     Request,
     Response,
     AppErrorHandler,
     NextFunction,
 } from './types';
+
+export {AuthPolicy} from './types';

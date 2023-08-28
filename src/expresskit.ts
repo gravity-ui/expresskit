@@ -1,9 +1,9 @@
 import fs from 'fs';
 
 import express, {Express} from 'express';
-import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
-import {AppRoutes} from './types';
-import {Server} from 'http';
+import type {AppConfig, NodeKit} from '@gravity-ui/nodekit';
+import type {AppRoutes} from './types';
+import type {Server} from 'http';
 import {setupRoutes} from './router';
 import {setupBaseMiddleware} from './base-middleware';
 import {setupParsers} from './parsers';
