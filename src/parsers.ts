@@ -1,8 +1,8 @@
-import {AppContext} from '@gravity-ui/nodekit';
-import {Express} from 'express';
+import type {AppContext} from '@gravity-ui/nodekit';
+import type {Express} from 'express';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
-import {AppErrorHandler} from './types';
+import type {AppErrorHandler} from './types';
 
 export function setupParsers(ctx: AppContext, expressApp: Express) {
     expressApp.use(cookieParser(ctx.config.expressCookieSecret));
