@@ -5,9 +5,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "npm run build && eslint . && jest",
-    "build": "rm -rf dist && tsc",
-    "prepublishOnly": "npm run build && rm -rf dist/tests",
+    "lint": "npm run lint:code && npm run lint:other",
+    "lint:code": "eslint --ext .js,.ts .",
+    "lint:other": "npm run prettier -- --check",
+    "prettier": "prettier '**/*.{md,yaml,yml,json}'",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && jest",
+    "build": "rimraf dist && tsc",
+    "prepublishOnly": "npm run build && rimraf dist/tests",
     "watch": "tsc -w",
     "dev": "tsc-watch -w --onSuccess 'jest'",
     "prepare": "husky install"
@@ -18,6 +23,8 @@
   "author": "Gravity UI Team",
   "license": "MIT",
   "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
     "@gravity-ui/eslint-config": "^1.0.2",
     "@gravity-ui/prettier-config": "^1.0.1",
     "@gravity-ui/tsconfig": "^1.0.0",
@@ -29,7 +36,9 @@
     "eslint": "^8.28.0",
     "husky": "^8.0.2",
     "jest": "^29.3.1",
+    "nano-staged": "^0.8.0",
     "prettier": "^2.8.0",
+    "rimraf": "^5.0.1",
     "tsc-watch": "^5.0.3",
     "typescript": "^4.5.0"
   },
@@ -39,5 +48,13 @@
     "cookie-parser": "1.4.6",
     "express": "^4.18.2",
     "uuid": "^9.0.0"
+  },
+  "nano-staged": {
+    "*.{js,ts}": [
+      "eslint --fix --quiet"
+    ],
+    "*.{md,json,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
