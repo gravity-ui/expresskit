@@ -71,7 +71,7 @@ export enum AuthPolicy {
 
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
-    controllerName?: string;
+    handlerName?: string;
 }
 
 export interface AppRouteDescription extends AppRouteParams {
@@ -87,7 +87,7 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export interface AppMountHandler {
     (args: {
         router: Router;
-        wrapRouteHandler: (fn: AppRouteHandler, controllerName?: string) => AppMiddleware;
+        wrapRouteHandler: (fn: AppRouteHandler, handlerName?: string) => AppMiddleware;
     }): void | Router;
 }
 

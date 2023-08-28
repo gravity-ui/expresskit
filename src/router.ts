@@ -44,16 +44,16 @@ function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
 }
 
 const UNNAMED_CONTROLLER = 'unnamedController';
-function wrapRouteHandler(fn: AppRouteHandler, controllerName?: string) {
-    const controllerNameLocal = controllerName || fn.name || UNNAMED_CONTROLLER;
+function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
+    const handlerNameLocal = handlerName || fn.name || UNNAMED_CONTROLLER;
 
     const handler: AppMiddleware = (req, res, next) => {
-        req.ctx = req.originalContext.create(controllerNameLocal);
-        if (req.routeInfo.controllerName !== controllerNameLocal) {
-            if (req.routeInfo.controllerName === UNNAMED_CONTROLLER) {
-                req.routeInfo.controllerName = controllerNameLocal;
+        req.ctx = req.originalContext.create(handlerNameLocal);
+        if (req.routeInfo.handlerName !== handlerNameLocal) {
+            if (req.routeInfo.handlerName === UNNAMED_CONTROLLER) {
+                req.routeInfo.handlerName = handlerNameLocal;
             } else {
-                req.routeInfo.controllerName = `${req.routeInfo.controllerName}(${controllerNameLocal})`;
+                req.routeInfo.handlerName = `${req.routeInfo.handlerName}(${handlerNameLocal})`;
             }
         }
         Promise.resolve(fn(req, res))
@@ -64,7 +64,7 @@ function wrapRouteHandler(fn: AppRouteHandler, controllerName?: string) {
             });
     };
 
-    Object.defineProperty(handler, 'name', {value: controllerNameLocal});
+    Object.defineProperty(handler, 'name', {value: handlerNameLocal});
 
     return handler;
 }
@@ -90,16 +90,15 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             ...restRouteInfo
         } = route;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
-        const controllerName =
-            restRouteInfo.controllerName || route.handler.name || UNNAMED_CONTROLLER;
+        const handlerName = restRouteInfo.handlerName || route.handler.name || UNNAMED_CONTROLLER;
         const routeInfoMiddleware: AppMiddleware = function routeInfoMiddleware(req, res, next) {
-            Object.assign(req.routeInfo, restRouteInfo, {authPolicy, controllerName});
+            Object.assign(req.routeInfo, restRouteInfo, {authPolicy, handlerName});
 
             res.on('finish', () => {
                 if (req.ctx.config.appTelemetryChEnableSelfStats) {
                     req.ctx.stats({
                         service: 'self',
-                        action: req.routeInfo.controllerName || UNNAMED_CONTROLLER,
+                        action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
                         responseStatus: res.statusCode,
                         requestId: req.id,
                         requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
@@ -138,10 +137,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             const targetApp = (route as AppMountDescription).handler({router, wrapRouteHandler});
             expressApp.use(routePath, wrappedMiddleware, targetApp || router);
         } else {
-            const handler = wrapRouteHandler(
-                (route as AppRouteDescription).handler,
-                controllerName,
-            );
+            const handler = wrapRouteHandler((route as AppRouteDescription).handler, handlerName);
             expressApp[method](routePath, wrappedMiddleware, handler);
         }
     });
