@@ -1,12 +1,13 @@
 import fs from 'fs';
-
-import express, {Express} from 'express';
-import type {AppConfig, NodeKit} from '@gravity-ui/nodekit';
-import type {AppRoutes} from './types';
 import type {Server} from 'http';
-import {setupRoutes} from './router';
+
+import type {AppConfig, NodeKit} from '@gravity-ui/nodekit';
+import express, {Express} from 'express';
+
 import {setupBaseMiddleware} from './base-middleware';
 import {setupParsers} from './parsers';
+import {setupRoutes} from './router';
+import type {AppRoutes} from './types';
 
 const DEFAULT_PORT = 3030;
 
