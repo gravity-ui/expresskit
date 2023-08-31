@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/gravity-ui/expresskit/compare/v0.5.0...v1.0.0) (2023-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **package:** move nodekit to peer dependencies ([#18](https://github.com/gravity-ui/expresskit/issues/18))
+
+### chore
+
+* **package:** move nodekit to peer dependencies ([#18](https://github.com/gravity-ui/expresskit/issues/18)) ([f74f0f3](https://github.com/gravity-ui/expresskit/commit/f74f0f3acf0e31a71fbcf8cb75518300416e5dbe))
+
 ## [0.5.0](https://github.com/gravity-ui/expresskit/compare/v0.4.1...v0.5.0) (2023-08-28)
 
 ### Features
