@@ -1,5 +1,6 @@
 import type {AppContext} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
+
 import {
     AppErrorHandler,
     AppMiddleware,
@@ -9,11 +10,12 @@ import {
     AppRoutes,
     AuthPolicy,
     ExpressFinalError,
-    HttpMethod,
     HTTP_METHODS,
+    HttpMethod,
 } from './types';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return HTTP_METHODS.includes(method as any) || method === 'mount';
 }
 

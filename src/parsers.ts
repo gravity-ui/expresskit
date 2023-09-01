@@ -1,7 +1,8 @@
 import type {AppContext} from '@gravity-ui/nodekit';
-import type {Express} from 'express';
-import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
+import type {Express} from 'express';
+
 import type {AppErrorHandler} from './types';
 
 export function setupParsers(ctx: AppContext, expressApp: Express) {
