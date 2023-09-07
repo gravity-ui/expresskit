@@ -38,6 +38,7 @@ declare module '@gravity-ui/nodekit' {
 
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;
+        expressExtendedBodyParserJSONLimitError?: boolean;
 
         expressDisableBodyParserURLEncoded?: boolean;
         expressBodyParserURLEncodedConfig?: bodyParser.OptionsUrlencoded;
