@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/gravity-ui/expresskit/compare/v1.0.0...v1.1.0) (2023-09-07)
+
+
+### Features
+
+* **body-parsers:** increase default limits, add option for extended error info ([#21](https://github.com/gravity-ui/expresskit/issues/21)) ([79b1bc6](https://github.com/gravity-ui/expresskit/commit/79b1bc606c9080a641375d8c9403b08f913b8b56))
+
 ## [1.0.0](https://github.com/gravity-ui/expresskit/compare/v0.5.0...v1.0.0) (2023-08-31)
 
 
