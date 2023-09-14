@@ -35,24 +35,25 @@ export class ExpressKit {
         setupBaseMiddleware(this.nodekit.ctx, this.express);
         setupParsers(this.nodekit.ctx, this.express);
         setupRoutes(this.nodekit.ctx, this.express, routes);
-    }
 
-    run() {
-        const appSocket = process.env.APP_SOCKET || this.config.appSocket;
-        const listenTarget =
-            process.env.APP_PORT || this.config.appPort || appSocket || DEFAULT_PORT;
-        const listenTargetType = appSocket === listenTarget ? 'socket' : 'port';
-
-        this.nodekit.ctx.log(`Listening on ${listenTargetType} ${listenTarget}`);
-
+        const appSocket = this.getAppSocket();
+        const listenTarget = this.getListenTarget(appSocket);
         if (
             appSocket &&
-            listenTargetType === 'socket' &&
+            listenTarget === appSocket &&
             cluster.isPrimary &&
             fs.existsSync(appSocket)
         ) {
             fs.unlinkSync(appSocket);
         }
+    }
+
+    run() {
+        const appSocket = this.getAppSocket();
+        const listenTarget = this.getListenTarget(appSocket);
+        const listenTargetType = appSocket === listenTarget ? 'socket' : 'port';
+
+        this.nodekit.ctx.log(`Listening on ${listenTargetType} ${listenTarget}`);
 
         this.httpServer = this.express.listen(listenTarget, () => {
             this.nodekit.ctx.log('App is running');
@@ -72,4 +73,8 @@ export class ExpressKit {
             });
         });
     }
+
+    private getAppSocket = () => process.env.APP_SOCKET || this.config.appSocket;
+    private getListenTarget = (appSocket?: string) =>
+        process.env.APP_PORT || this.config.appPort || appSocket || DEFAULT_PORT;
 }
