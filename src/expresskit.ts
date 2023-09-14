@@ -1,3 +1,4 @@
+import cluster from 'cluster';
 import fs from 'fs';
 import type {Server} from 'http';
 
@@ -44,7 +45,12 @@ export class ExpressKit {
 
         this.nodekit.ctx.log(`Listening on ${listenTargetType} ${listenTarget}`);
 
-        if (appSocket && listenTargetType === 'socket' && fs.existsSync(appSocket)) {
+        if (
+            appSocket &&
+            listenTargetType === 'socket' &&
+            cluster.isPrimary &&
+            fs.existsSync(appSocket)
+        ) {
             fs.unlinkSync(appSocket);
         }
 
