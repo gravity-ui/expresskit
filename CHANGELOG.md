@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/gravity-ui/expresskit/compare/v1.1.1...v1.1.2) (2023-09-14)
+
+
+### Bug Fixes
+
+* socket file cleaner ([#25](https://github.com/gravity-ui/expresskit/issues/25)) ([bce6c1a](https://github.com/gravity-ui/expresskit/commit/bce6c1ad744c977ab6cfd2f9431ab24df9574f4b))
+
 ## [1.1.1](https://github.com/gravity-ui/expresskit/compare/v1.1.0...v1.1.1) (2023-09-14)
 
 
