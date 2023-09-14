@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/gravity-ui/expresskit/compare/v1.1.0...v1.1.1) (2023-09-14)
+
+
+### Bug Fixes
+
+* **socket:** only delete socket if current process is primary one ([#23](https://github.com/gravity-ui/expresskit/issues/23)) ([592a048](https://github.com/gravity-ui/expresskit/commit/592a0486008cb74dafcb3a88c84c5b286d814a2a))
+
 ## [1.1.0](https://github.com/gravity-ui/expresskit/compare/v1.0.0...v1.1.0) (2023-09-07)
 
 
