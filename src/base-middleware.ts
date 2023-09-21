@@ -1,4 +1,4 @@
-import type {AppContext} from '@gravity-ui/nodekit';
+import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import type {Express} from 'express';
 import {v4 as uuidv4} from 'uuid';
 
@@ -27,7 +27,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 parentSpanContext,
                 loggerPostfix: `[${req.id}]`,
             });
-            req.ctx.set('requestId', req.id);
+            req.ctx.set(REQUEST_ID_PARAM_NAME, req.id);
 
             req.ctx.setTag('http.hostname', req.hostname);
             req.ctx.setTag('http.method', req.method);
@@ -75,7 +75,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             if (traceId) {
                 res.setHeader('x-trace-id', traceId);
             }
-
             next();
             return;
         } catch (error) {

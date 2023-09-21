@@ -57,10 +57,6 @@ declare module '@gravity-ui/nodekit' {
 
         appTelemetryChEnableSelfStats?: boolean;
     }
-
-    interface AppContextParams {
-        requestId: string;
-    }
 }
 
 export enum AuthPolicy {
