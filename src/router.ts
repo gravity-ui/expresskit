@@ -1,6 +1,7 @@
 import type {AppContext} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
 
+import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
     AppErrorHandler,
     AppMiddleware,
@@ -72,6 +73,8 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
 }
 
 export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
+    const appPresets = getAppPresets(ctx.config.cspPresets);
+
     Object.entries(routes).forEach(([routeKey, rawRoute]) => {
         const routeKeyParts = routeKey.split(/\s+/);
         const method = routeKeyParts[0].toLowerCase();
@@ -89,6 +92,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             handler: _h,
             beforeAuth: _beforeAuth,
             afterAuth: _afterAuth,
+            cspPresets,
             ...restRouteInfo
         } = route;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
@@ -115,6 +119,17 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const routeMiddleware: AppMiddleware[] = [
             routeInfoMiddleware,
+            ...(ctx.config.cspDisable
+                ? []
+                : [
+                      cspMiddleware({
+                          appPresets,
+                          routPresets: cspPresets,
+                          reportOnly: ctx.config.cspReportOnly,
+                          reportTo: ctx.config.cspReportTo,
+                          reportUri: ctx.config.cspReportUri,
+                      }),
+                  ]),
             ...(ctx.config.appBeforeAuthMiddleware || []),
             ...(route.beforeAuth || []),
         ];
