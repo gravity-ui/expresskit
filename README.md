@@ -36,7 +36,7 @@ import type {AppConfig} from '@gravity-ui/nodekit';
 import {csp} from '@gravity-ui/expresskit';
 
 const config: Partial<AppConfig> = {
-    // cspDisable: true,
+    cspEnable: true,
     cspPresets: ({getDefaultPresets}) => {
         return getDefaultPresets({defaultNone: true}).concat([
             csp.inline(),

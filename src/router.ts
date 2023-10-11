@@ -119,9 +119,8 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const routeMiddleware: AppMiddleware[] = [
             routeInfoMiddleware,
-            ...(ctx.config.cspDisable
-                ? []
-                : [
+            ...(ctx.config.cspEnable
+                ? [
                       cspMiddleware({
                           appPresets,
                           routPresets: cspPresets,
@@ -129,7 +128,8 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                           reportTo: ctx.config.cspReportTo,
                           reportUri: ctx.config.cspReportUri,
                       }),
-                  ]),
+                  ]
+                : []),
             ...(ctx.config.appBeforeAuthMiddleware || []),
             ...(route.beforeAuth || []),
         ];

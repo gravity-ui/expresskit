@@ -61,7 +61,7 @@ declare module '@gravity-ui/nodekit' {
 
         appTelemetryChEnableSelfStats?: boolean;
 
-        cspDisable?: boolean;
+        cspEnable?: boolean;
         cspPresets?:
             | CSPPreset
             | ((params: {getDefaultPresets: typeof getDefaultPresets}) => CSPPreset);
