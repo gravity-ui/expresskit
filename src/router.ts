@@ -73,7 +73,7 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
 }
 
 export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
-    const appPresets = getAppPresets(ctx.config.cspPresets);
+    const appPresets = getAppPresets(ctx.config.expressCspPresets);
 
     Object.entries(routes).forEach(([routeKey, rawRoute]) => {
         const routeKeyParts = routeKey.split(/\s+/);
@@ -119,14 +119,14 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const routeMiddleware: AppMiddleware[] = [
             routeInfoMiddleware,
-            ...(ctx.config.cspEnable
+            ...(ctx.config.expressCspEnable
                 ? [
                       cspMiddleware({
                           appPresets,
                           routPresets: cspPresets,
-                          reportOnly: ctx.config.cspReportOnly,
-                          reportTo: ctx.config.cspReportTo,
-                          reportUri: ctx.config.cspReportUri,
+                          reportOnly: ctx.config.expressCspReportOnly,
+                          reportTo: ctx.config.expressCspReportTo,
+                          reportUri: ctx.config.expressCspReportUri,
                       }),
                   ]
                 : []),

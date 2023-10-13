@@ -61,13 +61,13 @@ declare module '@gravity-ui/nodekit' {
 
         appTelemetryChEnableSelfStats?: boolean;
 
-        cspEnable?: boolean;
-        cspPresets?:
+        expressCspEnable?: boolean;
+        expressCspPresets?:
             | CSPPreset
             | ((params: {getDefaultPresets: typeof getDefaultPresets}) => CSPPreset);
-        cspReportOnly?: boolean;
-        cspReportTo?: CSPMiddlewareParams['reportTo'];
-        cspReportUri?: CSPMiddlewareParams['reportUri'];
+        expressCspReportOnly?: boolean;
+        expressCspReportTo?: CSPMiddlewareParams['reportTo'];
+        expressCspReportUri?: CSPMiddlewareParams['reportUri'];
     }
 }
 
