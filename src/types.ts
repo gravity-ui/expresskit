@@ -9,6 +9,10 @@ import type {
     Router,
 } from 'express';
 
+import type {CSPPreset} from './csp';
+import type {getDefaultPresets} from './csp/default-presets';
+import type {CSPMiddlewareParams} from './csp/middleware';
+
 declare global {
     // eslint-disable-next-line
     namespace Express {
@@ -56,6 +60,14 @@ declare module '@gravity-ui/nodekit' {
         appAfterAuthMiddleware?: RequestHandler[];
 
         appTelemetryChEnableSelfStats?: boolean;
+
+        expressCspEnable?: boolean;
+        expressCspPresets?:
+            | CSPPreset
+            | ((params: {getDefaultPresets: typeof getDefaultPresets}) => CSPPreset);
+        expressCspReportOnly?: boolean;
+        expressCspReportTo?: CSPMiddlewareParams['reportTo'];
+        expressCspReportUri?: CSPMiddlewareParams['reportUri'];
     }
 }
 
@@ -76,6 +88,12 @@ export interface AppRouteDescription extends AppRouteParams {
     authHandler?: AppAuthHandler;
     beforeAuth?: AppMiddleware[];
     afterAuth?: AppMiddleware[];
+    cspPresets?:
+        | CSPPreset
+        | ((params: {
+              getDefaultPresets: typeof getDefaultPresets;
+              appPresets: CSPPreset;
+          }) => CSPPreset);
 }
 
 export const HTTP_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
