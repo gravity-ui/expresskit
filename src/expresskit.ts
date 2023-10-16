@@ -1,6 +1,7 @@
 import cluster from 'cluster';
 import fs from 'fs';
 import type {Server} from 'http';
+import {isMainThread} from 'worker_threads';
 
 import type {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import express, {Express} from 'express';
@@ -42,6 +43,7 @@ export class ExpressKit {
             appSocket &&
             listenTarget === appSocket &&
             cluster.isPrimary &&
+            isMainThread &&
             fs.existsSync(appSocket)
         ) {
             fs.unlinkSync(appSocket);
