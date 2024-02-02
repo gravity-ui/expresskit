@@ -31,20 +31,20 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
 
             req.ctx.setTag('http.hostname', req.hostname);
             req.ctx.setTag('http.method', req.method);
-            req.ctx.setTag('http.url', req.url);
-            req.ctx.setTag('path', req.path);
-            req.ctx.setTag('referer', req.get('referer'));
+            req.ctx.setTag('http.url', ctx.utils.redactSensitiveQueryParams(req.url));
+            req.ctx.setTag('path', ctx.utils.redactSensitiveQueryParams(req.path));
+            req.ctx.setTag('referer', ctx.utils.redactSensitiveQueryParams(req.get('referer')));
             req.ctx.setTag('remote_ip', req.ip);
             req.ctx.setTag('request_id', req.id);
             req.ctx.setTag('user_agent', userAgent);
 
             const requestStartedExtra = ctx.config.appDevMode
-                ? {url: req.url}
+                ? {url: ctx.utils.redactSensitiveQueryParams(req.url)}
                 : {
                       id: req.id,
                       method: req.method,
-                      url: req.url,
-                      headers: ctx.utils.redactSensitiveKeys(req.headers),
+                      url: ctx.utils.redactSensitiveQueryParams(req.url),
+                      headers: ctx.utils.redactSensitiveHeaders(req.headers),
                       remoteAddress: req.connection && req.connection.remoteAddress,
                       remotePort: req.connection && req.connection.remotePort,
                   };
