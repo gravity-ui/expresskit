@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/gravity-ui/expresskit/compare/v1.2.0...v1.2.1) (2024-02-02)
+
+
+### Bug Fixes
+
+* **sensitive-tokens:** hide sensitive tokens on 'Request starter' log ([#31](https://github.com/gravity-ui/expresskit/issues/31)) ([860da65](https://github.com/gravity-ui/expresskit/commit/860da6530beeb158fafcee6b7e2fdbb3aa2b0fb9))
+
 ## [1.2.0](https://github.com/gravity-ui/expresskit/compare/v1.1.2...v1.2.0) (2023-10-18)
 
 
