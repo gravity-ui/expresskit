@@ -37,7 +37,7 @@ declare module 'express' {
 declare module '@gravity-ui/nodekit' {
     interface AppConfig {
         expressTrustProxyNumber?: number | boolean;
-        expressCookieSecret?: string;
+        expressCookieSecret?: string | string[];
         expressRequestIdHeaderName?: string;
 
         expressDisableBodyParserJSON?: boolean;
