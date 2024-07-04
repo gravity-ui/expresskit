@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/gravity-ui/expresskit/compare/v1.2.1...v1.3.0) (2024-07-04)
+
+
+### Features
+
+* add express cookie secret as array for rotation ([#38](https://github.com/gravity-ui/expresskit/issues/38)) ([df34df1](https://github.com/gravity-ui/expresskit/commit/df34df1298e2cd97ad6c758f9975b0db7e3f012f))
+
 ## [1.2.1](https://github.com/gravity-ui/expresskit/compare/v1.2.0...v1.2.1) (2024-02-02)
 
 
