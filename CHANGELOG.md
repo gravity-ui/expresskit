@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/gravity-ui/expresskit/compare/v1.3.0...v1.4.0) (2024-07-26)
+
+
+### Features
+
+* **deps:** update deps & peer dependency for nodekit ([#41](https://github.com/gravity-ui/expresskit/issues/41)) ([e468c17](https://github.com/gravity-ui/expresskit/commit/e468c17fa8b08d0553fd999ee59044c1b155af11))
+
 ## [1.3.0](https://github.com/gravity-ui/expresskit/compare/v1.2.1...v1.3.0) (2024-07-04)
 
 
