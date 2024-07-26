@@ -1,4 +1,4 @@
-# ExpressKit (work in progress)
+# ExpressKit
 
 ExpressKit is a lightweight [express.js](https://expressjs.com/) wrapper that integrates with [NodeKit](https://github.com/gravity-ui/nodekit) and provides some useful features like request logging, tracing support, async controllers & middleware and verbose routes description.
 
@@ -24,8 +24,6 @@ const app = new ExpressKit(nodekit, {
 
 app.run();
 ```
-
-More complex examples and documentation are coming.
 
 ## CSP
 

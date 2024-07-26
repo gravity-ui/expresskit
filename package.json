@@ -51,7 +51,7 @@
     "uuid": "^9.0.0"
   },
   "peerDependencies": {
-    "@gravity-ui/nodekit": "^1.2.1"
+    "@gravity-ui/nodekit": "^1.4.0"
   },
   "nano-staged": {
     "*.{js,ts}": [
