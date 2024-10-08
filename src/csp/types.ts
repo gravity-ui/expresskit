@@ -9,8 +9,9 @@ export type DirectivesOfType<T> = {
     [K in keyof CSPDirectives]: T extends CSPDirectives[K] ? K : never;
 }[keyof CSPDirectives];
 
-export type CommonTypeOfDirectives<T> = UnionToIntersection<
-    T extends keyof CSPDirectives ? {Type: CSPDirectives[T]} : never
-> extends Record<string, infer P>
-    ? P
-    : never;
+export type CommonTypeOfDirectives<T> =
+    UnionToIntersection<
+        T extends keyof CSPDirectives ? {Type: CSPDirectives[T]} : never
+    > extends Record<string, infer P>
+        ? P
+        : never;
