@@ -3,6 +3,7 @@ import type {Express} from 'express';
 import {v4 as uuidv4} from 'uuid';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
+import {prepareSetLang} from './lang/set-lang';
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
     expressApp.use((req, res, next) => {
@@ -75,6 +76,9 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             if (traceId) {
                 res.setHeader('x-trace-id', traceId);
             }
+
+            ctx.utils.setLang = prepareSetLang(ctx, res);
+
             next();
             return;
         } catch (error) {
