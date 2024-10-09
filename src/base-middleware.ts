@@ -77,7 +77,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 res.setHeader('x-trace-id', traceId);
             }
 
-            ctx.utils.setLang = prepareSetLang(ctx, res);
+            ctx.langUtils.setLang = prepareSetLang(ctx, res);
 
             next();
             return;

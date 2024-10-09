@@ -73,6 +73,11 @@ declare module '@gravity-ui/nodekit' {
         defaultLang?: string;
         getLangByHostname?: (hostname: string) => string | undefined;
     }
+    interface AppContext {
+        langUtils: {
+            setLang: (lang: string) => void;
+        };
+    }
 }
 
 export enum AuthPolicy {
