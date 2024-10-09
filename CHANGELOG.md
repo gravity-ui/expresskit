@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/gravity-ui/expresskit/compare/v1.5.0...v1.5.1) (2024-10-09)
+
+
+### Bug Fixes
+
+* update dependencies ([#48](https://github.com/gravity-ui/expresskit/issues/48)) ([d750d37](https://github.com/gravity-ui/expresskit/commit/d750d376a156814f6fde6930b84d81b6d2314457))
+
 ## [1.5.0](https://github.com/gravity-ui/expresskit/compare/v1.4.0...v1.5.0) (2024-09-30)
 
 
