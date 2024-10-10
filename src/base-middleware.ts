@@ -89,7 +89,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 req.originalContext.end();
             });
 
-            ctx.utils.setLang = prepareSetLang(ctx, res);
             next();
             return;
         } catch (error) {

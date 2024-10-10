@@ -8,25 +8,25 @@ const LANG_BY_TLD: Record<string, string | undefined> = {
     com: 'en',
 };
 
-export function setupLangMiddleware(ctx: AppContext, expressApp: Express) {
-    const config = ctx.config;
+export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
+    const config = appCtx.config;
     const {defaultLang, allowedLangs} = config;
     if (allowedLangs && allowedLangs.length > 0 && defaultLang) {
-        expressApp.use((req, res, next) => {
-            setLang({lang: defaultLang, config, res: res});
+        expressApp.use((req, _res, next) => {
+            setLang({lang: defaultLang, ctx: req.ctx});
 
             if (config.getLangByHostname) {
                 const langByHostname = config.getLangByHostname(req.hostname);
 
                 if (langByHostname) {
-                    setLang({lang: langByHostname, config, res: res});
+                    setLang({lang: langByHostname, ctx: req.ctx});
                 }
             } else {
                 const tld = req.hostname.split('.').pop();
                 const langByTld = tld ? LANG_BY_TLD[tld] : undefined;
 
                 if (langByTld) {
-                    setLang({lang: langByTld, config, res: res});
+                    setLang({lang: langByTld, ctx: req.ctx});
                 }
             }
 
@@ -38,7 +38,7 @@ export function setupLangMiddleware(ctx: AppContext, expressApp: Express) {
                 );
 
                 if (langByHeader) {
-                    setLang({lang: langByHeader, config, res: res});
+                    setLang({lang: langByHeader, ctx: req.ctx});
                 }
             }
 
