@@ -3,7 +3,6 @@ import type {Express} from 'express';
 import {v4 as uuidv4} from 'uuid';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
-import {prepareSetLang} from './lang/set-lang';
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
     expressApp.use((req, res, next) => {
