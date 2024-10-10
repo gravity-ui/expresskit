@@ -33,6 +33,7 @@
     "@types/express": "^4.17.21",
     "@types/jest": "^29.2.3",
     "@types/node": "^18.11.9",
+    "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.0",
     "eslint": "^8.57.1",
     "husky": "^8.0.2",
@@ -40,6 +41,7 @@
     "nano-staged": "^0.8.0",
     "prettier": "^3.3.3",
     "rimraf": "^5.0.1",
+    "supertest": "^7.0.0",
     "tsc-watch": "^5.0.3",
     "typescript": "^5.6.2"
   },

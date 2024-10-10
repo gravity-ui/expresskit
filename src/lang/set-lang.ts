@@ -1,5 +1,5 @@
-import {AppContext} from '@gravity-ui/nodekit';
-import type {Response} from 'express';
+import type {AppContext} from '@gravity-ui/nodekit';
+import type {Response} from '../';
 export const prepareSetLang = (ctx: AppContext, res: Response) => {
     return (lang: string) => {
         if (!ctx.config.allowedLangs || ctx.config.allowedLangs.includes(lang)) {

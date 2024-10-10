@@ -35,9 +35,9 @@ export class ExpressKit {
         this.express.get('/__version', (_, res) => res.send({version: this.config.appVersion}));
 
         setupBaseMiddleware(this.nodekit.ctx, this.express);
+        setupLangMiddleware(this.nodekit.ctx, this.express);
         setupParsers(this.nodekit.ctx, this.express);
         setupRoutes(this.nodekit.ctx, this.express, routes);
-        setupLangMiddleware(this.nodekit.ctx, this.express);
 
         const appSocket = this.getAppSocket();
         const listenTarget = this.getListenTarget(appSocket);
