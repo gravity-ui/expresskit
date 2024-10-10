@@ -1,6 +1,7 @@
 import {AppContext} from '@gravity-ui/nodekit';
 import acceptLanguage from 'accept-language-parser';
 import type {Express} from 'express';
+import {setLang} from './set-lang';
 
 const LANG_BY_TLD: Record<string, string | undefined> = {
     ru: 'ru',
@@ -11,21 +12,21 @@ export function setupLangMiddleware(ctx: AppContext, expressApp: Express) {
     const config = ctx.config;
     const {defaultLang, allowedLangs} = config;
     if (allowedLangs && allowedLangs.length > 0 && defaultLang) {
-        expressApp.use((req, _res, next) => {
-            ctx.langUtils.setLang(defaultLang);
+        expressApp.use((req, res, next) => {
+            setLang({lang: defaultLang, config, res: res});
 
             if (config.getLangByHostname) {
                 const langByHostname = config.getLangByHostname(req.hostname);
 
                 if (langByHostname) {
-                    ctx.langUtils.setLang(langByHostname);
+                    setLang({lang: langByHostname, config, res: res});
                 }
             } else {
                 const tld = req.hostname.split('.').pop();
                 const langByTld = tld ? LANG_BY_TLD[tld] : undefined;
 
                 if (langByTld) {
-                    ctx.langUtils.setLang(langByTld);
+                    setLang({lang: langByTld, config, res: res});
                 }
             }
 
@@ -37,7 +38,7 @@ export function setupLangMiddleware(ctx: AppContext, expressApp: Express) {
                 );
 
                 if (langByHeader) {
-                    ctx.langUtils.setLang(langByHeader);
+                    setLang({lang: langByHeader, config, res: res});
                 }
             }
 
