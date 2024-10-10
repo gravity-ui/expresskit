@@ -1,5 +1,5 @@
 import {ExpressKit, Request, Response} from '..';
-import {NodeKit} from '@gravity-ui/nodekit';
+import {NodeKit, USER_LANGUAGE_PARAM_NAME} from '@gravity-ui/nodekit';
 import request from 'supertest';
 
 const setupApp = (config: NodeKit['config'] = {}) => {
@@ -14,9 +14,10 @@ const setupApp = (config: NodeKit['config'] = {}) => {
     });
     const routes = {
         'GET /test': {
-            handler: (_: Request, res: Response) => {
+            handler: (req: Request, res: Response) => {
                 res.status(200);
-                res.send({lang: res.locals.lang});
+                const lang = req.ctx.get(USER_LANGUAGE_PARAM_NAME);
+                res.send({lang});
             },
         },
     };
