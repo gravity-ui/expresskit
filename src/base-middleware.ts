@@ -75,7 +75,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             if (traceId) {
                 res.setHeader('x-trace-id', traceId);
             }
-
             next();
             return;
         } catch (error) {
