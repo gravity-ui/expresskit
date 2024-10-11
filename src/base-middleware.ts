@@ -38,15 +38,30 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.setTag('request_id', req.id);
             req.ctx.setTag('user_agent', userAgent);
 
+            const traceId = req.ctx.getTraceId();
+            if (traceId) {
+                res.setHeader('x-trace-id', traceId);
+                req.ctx.addLoggerExtra('traceId', traceId);
+            }
+
+            req.ctx.addLoggerExtra('req', {
+                id: req.id,
+                method: req.method,
+                url: ctx.utils.redactSensitiveQueryParams(req.url),
+            });
+
             const requestStartedExtra = ctx.config.appDevMode
-                ? {url: ctx.utils.redactSensitiveQueryParams(req.url)}
+                ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
                 : {
-                      id: req.id,
-                      method: req.method,
-                      url: ctx.utils.redactSensitiveQueryParams(req.url),
-                      headers: ctx.utils.redactSensitiveHeaders(req.headers),
-                      remoteAddress: req.connection && req.connection.remoteAddress,
-                      remotePort: req.connection && req.connection.remotePort,
+                      traceId,
+                      req: {
+                          id: req.id,
+                          method: req.method,
+                          url: ctx.utils.redactSensitiveQueryParams(req.url),
+                          headers: ctx.utils.redactSensitiveHeaders(req.headers),
+                          remoteAddress: req.socket && req.socket.remoteAddress,
+                          remotePort: req.socket && req.socket.remotePort,
+                      },
                   };
             req.ctx.log('Request started', requestStartedExtra);
 
@@ -55,11 +70,14 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 const responseTime = Date.now() - startTime;
 
                 const responseExtra = ctx.config.appDevMode
-                    ? {responseTime, statusCode}
+                    ? {res: {responseTime, statusCode}}
                     : {
-                          responseTime,
-                          statusCode,
-                          headers: ctx.utils.redactSensitiveKeys(res.getHeaders()),
+                          traceId,
+                          res: {
+                              responseTime,
+                              statusCode,
+                              headers: ctx.utils.redactSensitiveKeys(res.getHeaders()),
+                          },
                       };
 
                 if (statusCode.startsWith('5')) {
@@ -71,10 +89,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 req.originalContext.end();
             });
 
-            const traceId = req.ctx.getTraceId();
-            if (traceId) {
-                res.setHeader('x-trace-id', traceId);
-            }
             next();
             return;
         } catch (error) {
