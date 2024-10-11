@@ -71,6 +71,7 @@ declare module '@gravity-ui/nodekit' {
 
         allowedLangs?: string[];
         defaultLang?: string;
+        langQueryParamName?: string;
         getLangByHostname?: (hostname: string) => string | undefined;
     }
 }

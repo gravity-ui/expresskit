@@ -110,3 +110,19 @@ describe('langMiddleware with accept-language header', () => {
         expect(res.status).toBe(200);
     });
 });
+
+describe('langMiddleware with lang query param', () => {
+    it('should set lang if known accept-language', async () => {
+        const app = setupApp({
+            langQueryParamName: '_lang',
+        });
+        const res = await request
+            .agent(app.express)
+            .host('www.foo.com')
+            .set('accept-language', 'ru-RU, ru;q=0.9, en-US;q=0.8, en;q=0.7, fr;q=0.6')
+            .get('/test?_lang=en');
+
+        expect(res.text).toBe('{"lang":"en"}');
+        expect(res.status).toBe(200);
+    });
+});

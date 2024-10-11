@@ -10,7 +10,7 @@ const LANG_BY_TLD: Record<string, string | undefined> = {
 
 export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
     const config = appCtx.config;
-    const {defaultLang, allowedLangs} = config;
+    const {defaultLang, allowedLangs, langQueryParamName} = config;
     if (allowedLangs && allowedLangs.length > 0 && defaultLang) {
         expressApp.use((req, _res, next) => {
             setLang({lang: defaultLang, ctx: req.ctx});
@@ -40,6 +40,11 @@ export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
                 if (langByHeader) {
                     setLang({lang: langByHeader, ctx: req.ctx});
                 }
+            }
+
+            const langQuery = langQueryParamName && req.query[langQueryParamName];
+            if (langQuery && typeof langQuery === 'string' && allowedLangs.includes(langQuery)) {
+                setLang({lang: langQuery, ctx: req.ctx});
             }
 
             return next();
