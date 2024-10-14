@@ -227,7 +227,7 @@ describe('log system', () => {
             req: {
                 id: requestId,
                 method: 'GET',
-                url: `/log?q=${query}`,
+                url: '/log',
             },
             res: {
                 statusCode: '200',
@@ -250,9 +250,25 @@ describe('log system', () => {
             req: {
                 id: requestId,
                 method: 'GET',
-                url: `/log?q=${query}`,
+                url: '/log',
             },
             query,
+        });
+
+        // first log with request
+        log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // check request log
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request started [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: `/log?q=${query}`,
+            },
         });
     });
 });
