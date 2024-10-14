@@ -5,18 +5,18 @@ import {setLang} from './set-lang';
 
 export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
     const config = appCtx.config;
-    const regionalEnvConfig = config.regionalEnvConfig;
-    if (!regionalEnvConfig) {
+    const languageConfig = config.language;
+    if (!languageConfig) {
         return;
     }
 
-    const {defaultLang, allowLanguages, langQueryParamName} = regionalEnvConfig;
+    const {defaultLang, allowLanguages, langQueryParamName} = languageConfig;
     if (allowLanguages && allowLanguages.length > 0 && defaultLang) {
         expressApp.use((req, _res, next) => {
             setLang({lang: defaultLang, ctx: req.ctx});
 
-            if (regionalEnvConfig.getLangByHostname) {
-                const langByHostname = regionalEnvConfig.getLangByHostname(req.hostname);
+            if (languageConfig.getLangByHostname) {
+                const langByHostname = languageConfig.getLangByHostname(req.hostname);
 
                 if (langByHostname) {
                     setLang({lang: langByHostname, ctx: req.ctx});
@@ -24,9 +24,7 @@ export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
             } else {
                 const tld = req.hostname.split('.').pop();
                 const langByTld =
-                    tld && regionalEnvConfig.langByTld
-                        ? regionalEnvConfig.langByTld[tld]
-                        : undefined;
+                    tld && languageConfig.langByTld ? languageConfig.langByTld[tld] : undefined;
 
                 if (langByTld) {
                     setLang({lang: langByTld, ctx: req.ctx});
