@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/gravity-ui/expresskit/compare/v2.0.0...v2.0.1) (2024-10-14)
+
+
+### Bug Fixes
+
+* update express and cookie-parser ([#54](https://github.com/gravity-ui/expresskit/issues/54)) ([9da8f4f](https://github.com/gravity-ui/expresskit/commit/9da8f4fa1a1b827594f8de46d21f162708b17e48))
+
 ## [2.0.0](https://github.com/gravity-ui/expresskit/compare/v1.5.0...v2.0.0) (2024-10-11)
 
 
