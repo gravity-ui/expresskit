@@ -3,27 +3,30 @@ import acceptLanguage from 'accept-language-parser';
 import type {Express} from 'express';
 import {setLang} from './set-lang';
 
-const LANG_BY_TLD: Record<string, string | undefined> = {
-    ru: 'ru',
-    com: 'en',
-};
-
 export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
     const config = appCtx.config;
-    const {defaultLang, allowedLangs, langQueryParamName} = config;
-    if (allowedLangs && allowedLangs.length > 0 && defaultLang) {
+    const regionalEnvConfig = config.regionalEnvConfig;
+    if (!regionalEnvConfig) {
+        return;
+    }
+
+    const {defaultLang, allowLanguages, langQueryParamName} = regionalEnvConfig;
+    if (allowLanguages && allowLanguages.length > 0 && defaultLang) {
         expressApp.use((req, _res, next) => {
             setLang({lang: defaultLang, ctx: req.ctx});
 
-            if (config.getLangByHostname) {
-                const langByHostname = config.getLangByHostname(req.hostname);
+            if (regionalEnvConfig.getLangByHostname) {
+                const langByHostname = regionalEnvConfig.getLangByHostname(req.hostname);
 
                 if (langByHostname) {
                     setLang({lang: langByHostname, ctx: req.ctx});
                 }
             } else {
                 const tld = req.hostname.split('.').pop();
-                const langByTld = tld ? LANG_BY_TLD[tld] : undefined;
+                const langByTld =
+                    tld && regionalEnvConfig.langByTld
+                        ? regionalEnvConfig.langByTld[tld]
+                        : undefined;
 
                 if (langByTld) {
                     setLang({lang: langByTld, ctx: req.ctx});
@@ -32,7 +35,7 @@ export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
 
             if (req.headers['accept-language']) {
                 const langByHeader = acceptLanguage.pick(
-                    allowedLangs,
+                    allowLanguages,
                     req.headers['accept-language'],
                     {loose: true},
                 );
@@ -43,7 +46,7 @@ export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
             }
 
             const langQuery = langQueryParamName && req.query[langQueryParamName];
-            if (langQuery && typeof langQuery === 'string' && allowedLangs.includes(langQuery)) {
+            if (langQuery && typeof langQuery === 'string' && allowLanguages.includes(langQuery)) {
                 setLang({lang: langQuery, ctx: req.ctx});
             }
 

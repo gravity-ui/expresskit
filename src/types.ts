@@ -69,10 +69,14 @@ declare module '@gravity-ui/nodekit' {
         expressCspReportTo?: CSPMiddlewareParams['reportTo'];
         expressCspReportUri?: CSPMiddlewareParams['reportUri'];
 
-        allowedLangs?: string[];
-        defaultLang?: string;
-        langQueryParamName?: string;
-        getLangByHostname?: (hostname: string) => string | undefined;
+        regionalEnvConfig?: {
+            allowLanguages?: string[];
+            defaultLang?: string;
+            langRegion?: string;
+            langQueryParamName?: string;
+            langByTld?: Record<string, string | undefined>;
+            getLangByHostname?: (hostname: string) => string | undefined;
+        };
     }
 }
 

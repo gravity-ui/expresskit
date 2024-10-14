@@ -2,14 +2,16 @@ import {ExpressKit, Request, Response} from '..';
 import {NodeKit, USER_LANGUAGE_PARAM_NAME} from '@gravity-ui/nodekit';
 import request from 'supertest';
 
-const setupApp = (config: NodeKit['config'] = {}) => {
+const setupApp = (langConfig: NodeKit['config']['regionalEnvConfig'] = {}) => {
     const nodekit = new NodeKit({
         config: {
-            ...{
-                defaultLang: 'ru',
-                allowedLangs: ['ru', 'en'],
+            regionalEnvConfig: {
+                ...{
+                    defaultLang: 'ru',
+                    allowLanguages: ['ru', 'en'],
+                },
+                ...langConfig,
             },
-            ...config,
         },
     });
     const routes = {
@@ -37,7 +39,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set lang for en domains by tld', async () => {
-        const app = setupApp();
+        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.com').get('/test');
 
         expect(res.text).toBe('{"lang":"en"}');
@@ -45,7 +47,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set lang for ru domains by tld ', async () => {
-        const app = setupApp();
+        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.ru').get('/test');
 
         expect(res.text).toBe('{"lang":"ru"}');
@@ -53,7 +55,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set default lang for other domains by tld ', async () => {
-        const app = setupApp();
+        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.jp').get('/test');
 
         expect(res.text).toBe('{"lang":"ru"}');
