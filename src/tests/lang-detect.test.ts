@@ -2,16 +2,12 @@ import {ExpressKit, Request, Response} from '..';
 import {NodeKit, USER_LANGUAGE_PARAM_NAME} from '@gravity-ui/nodekit';
 import request from 'supertest';
 
-const setupApp = (langConfig: NodeKit['config']['language'] = {}) => {
+const setupApp = (langConfig: NodeKit['config'] = {}) => {
     const nodekit = new NodeKit({
         config: {
-            language: {
-                ...{
-                    defaultLang: 'ru',
-                    allowLanguages: ['ru', 'en'],
-                },
-                ...langConfig,
-            },
+            defaultLang: 'ru',
+            allowedLangs: ['ru', 'en'],
+            ...langConfig,
         },
     });
     const routes = {
