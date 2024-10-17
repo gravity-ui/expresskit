@@ -6,28 +6,28 @@ import {setLang} from './set-lang';
 export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
     const config = appCtx.config;
 
-    const {defaultLang, allowedLangs, langQueryParamName} = config;
-    if (!(allowedLangs && allowedLangs.length > 0 && defaultLang)) {
+    const {appDefaultLang, appAllowedLangs, appLangQueryParamName} = config;
+    if (!(appAllowedLangs && appAllowedLangs.length > 0 && appDefaultLang)) {
         return;
     }
     expressApp.use((req, _res, next) => {
-        const langQuery = langQueryParamName && req.query[langQueryParamName];
-        if (langQuery && typeof langQuery === 'string' && allowedLangs.includes(langQuery)) {
+        const langQuery = appLangQueryParamName && req.query[appLangQueryParamName];
+        if (langQuery && typeof langQuery === 'string' && appAllowedLangs.includes(langQuery)) {
             setLang({lang: langQuery, ctx: req.ctx});
             return next();
         }
 
-        setLang({lang: defaultLang, ctx: req.ctx});
+        setLang({lang: appDefaultLang, ctx: req.ctx});
 
-        if (config.getLangByHostname) {
-            const langByHostname = config.getLangByHostname(req.hostname);
+        if (config.appGetLangByHostname) {
+            const langByHostname = config.appGetLangByHostname(req.hostname);
 
             if (langByHostname) {
                 setLang({lang: langByHostname, ctx: req.ctx});
             }
         } else {
             const tld = req.hostname.split('.').pop();
-            const langByTld = tld && config.langByTld ? config.langByTld[tld] : undefined;
+            const langByTld = tld && config.appLangByTld ? config.appLangByTld[tld] : undefined;
 
             if (langByTld) {
                 setLang({lang: langByTld, ctx: req.ctx});
@@ -35,9 +35,13 @@ export function setupLangMiddleware(appCtx: AppContext, expressApp: Express) {
         }
 
         if (req.headers['accept-language']) {
-            const langByHeader = acceptLanguage.pick(allowedLangs, req.headers['accept-language'], {
-                loose: true,
-            });
+            const langByHeader = acceptLanguage.pick(
+                appAllowedLangs,
+                req.headers['accept-language'],
+                {
+                    loose: true,
+                },
+            );
 
             if (langByHeader) {
                 setLang({lang: langByHeader, ctx: req.ctx});

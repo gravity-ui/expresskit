@@ -5,8 +5,8 @@ import request from 'supertest';
 const setupApp = (langConfig: NodeKit['config'] = {}) => {
     const nodekit = new NodeKit({
         config: {
-            defaultLang: 'ru',
-            allowedLangs: ['ru', 'en'],
+            appDefaultLang: 'ru',
+            appAllowedLangs: ['ru', 'en'],
             ...langConfig,
         },
     });
@@ -35,7 +35,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set lang for en domains by tld', async () => {
-        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
+        const app = setupApp({appLangByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.com').get('/test');
 
         expect(res.text).toBe('{"lang":"en"}');
@@ -43,7 +43,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set lang for ru domains by tld ', async () => {
-        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
+        const app = setupApp({appLangByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.ru').get('/test');
 
         expect(res.text).toBe('{"lang":"ru"}');
@@ -51,7 +51,7 @@ describe('langMiddleware with default options', () => {
     });
 
     it('should set default lang for other domains by tld ', async () => {
-        const app = setupApp({langByTld: {com: 'en', ru: 'ru'}});
+        const app = setupApp({appLangByTld: {com: 'en', ru: 'ru'}});
         const res = await request.agent(app.express).host('www.foo.jp').get('/test');
 
         expect(res.text).toBe('{"lang":"ru"}');
@@ -62,7 +62,7 @@ describe('langMiddleware with default options', () => {
 describe('langMiddleware with getLangByHostname is set', () => {
     it('should set lang by known hostname if getLangByHostname is set', async () => {
         const app = setupApp({
-            getLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
+            appGetLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
         });
         const res = await request.agent(app.express).host('www.foo.com').get('/test');
 
@@ -71,7 +71,7 @@ describe('langMiddleware with getLangByHostname is set', () => {
     });
     it("shouldn't set default lang for unknown hostname if getLangByHostname is set", async () => {
         const app = setupApp({
-            getLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
+            appGetLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
         });
         const res = await request.agent(app.express).host('www.bar.com').get('/test');
 
@@ -83,7 +83,7 @@ describe('langMiddleware with getLangByHostname is set', () => {
 describe('langMiddleware with accept-language header', () => {
     it('should set lang if known accept-language', async () => {
         const app = setupApp({
-            getLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
+            appGetLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
         });
         const res = await request
             .agent(app.express)
@@ -96,7 +96,7 @@ describe('langMiddleware with accept-language header', () => {
     });
     it('should set tld lang for unknown accept-language', async () => {
         const app = setupApp({
-            getLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
+            appGetLangByHostname: (hostname) => (hostname === 'www.foo.com' ? 'en' : undefined),
         });
         const res = await request
             .agent(app.express)
@@ -112,7 +112,7 @@ describe('langMiddleware with accept-language header', () => {
 describe('langMiddleware with lang query param', () => {
     it('should set lang if known accept-language', async () => {
         const app = setupApp({
-            langQueryParamName: '_lang',
+            appLangQueryParamName: '_lang',
         });
         const res = await request
             .agent(app.express)
