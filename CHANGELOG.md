@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/gravity-ui/expresskit/compare/v2.0.1...v2.1.0) (2024-10-21)
+
+
+### Features
+
+* add language detection ([#52](https://github.com/gravity-ui/expresskit/issues/52)) ([8962847](https://github.com/gravity-ui/expresskit/commit/8962847df2dc8903a8002e4156de03576e1807f6))
+
 ## [2.0.1](https://github.com/gravity-ui/expresskit/compare/v2.0.0...v2.0.1) (2024-10-14)
 
 
