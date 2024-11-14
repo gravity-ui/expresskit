@@ -2,6 +2,7 @@ import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import type {Express} from 'express';
 import {v4 as uuidv4} from 'uuid';
 
+import {SpanKind} from '@gravity-ui/nodekit/dist/types';
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
@@ -26,6 +27,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.originalContext = req.ctx = ctx.create(`Express ${req.method}`, {
                 parentSpanContext,
                 loggerPostfix: `[${req.id}]`,
+                spanKind: SpanKind.SERVER,
             });
             req.ctx.set(REQUEST_ID_PARAM_NAME, req.id);
 
@@ -34,9 +36,9 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.setTag('http.url', ctx.utils.redactSensitiveQueryParams(req.url));
             req.ctx.setTag('path', ctx.utils.redactSensitiveQueryParams(req.path));
             req.ctx.setTag('referer', ctx.utils.redactSensitiveQueryParams(req.get('referer')));
-            req.ctx.setTag('remote_ip', req.ip);
+            req.ctx.setTag('remote_ip', req.ip || '');
             req.ctx.setTag('request_id', req.id);
-            req.ctx.setTag('user_agent', userAgent);
+            req.ctx.setTag('user_agent', userAgent || '');
 
             const traceId = req.ctx.getTraceId();
             if (traceId) {
