@@ -10,6 +10,7 @@ import {setupBaseMiddleware} from './base-middleware';
 import {setupParsers} from './parsers';
 import {setupRoutes} from './router';
 import type {AppRoutes} from './types';
+import {setupLangMiddleware} from './lang/lang-middleware';
 
 const DEFAULT_PORT = 3030;
 
@@ -34,6 +35,7 @@ export class ExpressKit {
         this.express.get('/__version', (_, res) => res.send({version: this.config.appVersion}));
 
         setupBaseMiddleware(this.nodekit.ctx, this.express);
+        setupLangMiddleware(this.nodekit.ctx, this.express);
         setupParsers(this.nodekit.ctx, this.express);
         setupRoutes(this.nodekit.ctx, this.express, routes);
 
