@@ -20,12 +20,13 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
 
             const startTime = Date.now();
 
-            const userAgent = req.get('user-agent');
+            const userAgent = req.get('user-agent') ?? 'unknown';
             const parentSpanContext = ctx.extractSpanContext(req.headers);
 
             req.originalContext = req.ctx = ctx.create(`Express ${req.method}`, {
                 parentSpanContext,
                 loggerPostfix: `[${req.id}]`,
+                spanKind: 1, // SERVER
             });
             req.ctx.set(REQUEST_ID_PARAM_NAME, req.id);
 
@@ -34,7 +35,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.setTag('http.url', ctx.utils.redactSensitiveQueryParams(req.url));
             req.ctx.setTag('path', ctx.utils.redactSensitiveQueryParams(req.path));
             req.ctx.setTag('referer', ctx.utils.redactSensitiveQueryParams(req.get('referer')));
-            req.ctx.setTag('remote_ip', req.ip);
+            req.ctx.setTag('remote_ip', req.ip ?? 'unknown');
             req.ctx.setTag('request_id', req.id);
             req.ctx.setTag('user_agent', userAgent);
 
