@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/gravity-ui/expresskit/compare/v2.1.0...v2.2.0) (2024-12-03)
+
+
+### Features
+
+* support @gravity-ui/nodekit v2 ([#61](https://github.com/gravity-ui/expresskit/issues/61)) ([677056a](https://github.com/gravity-ui/expresskit/commit/677056a300c254a4ce5998a5d63df12fa32781dd))
+
+
+### Bug Fixes
+
+* remove log query string from url for every ctx log ([#56](https://github.com/gravity-ui/expresskit/issues/56)) ([60dc7d9](https://github.com/gravity-ui/expresskit/commit/60dc7d94f48cee3b1a62bc6e89e3322c0e34b8a7))
+
 ## [2.1.0](https://github.com/gravity-ui/expresskit/compare/v2.0.1...v2.1.0) (2024-10-21)
 
 
