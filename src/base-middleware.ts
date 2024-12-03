@@ -34,9 +34,13 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.setTag('http.url', ctx.utils.redactSensitiveQueryParams(req.url));
             req.ctx.setTag('path', ctx.utils.redactSensitiveQueryParams(req.path));
             req.ctx.setTag('referer', ctx.utils.redactSensitiveQueryParams(req.get('referer')));
-            req.ctx.setTag('remote_ip', req.ip);
+            if (req.ip) {
+                req.ctx.setTag('remote_ip', req.ip);
+            }
             req.ctx.setTag('request_id', req.id);
-            req.ctx.setTag('user_agent', userAgent);
+            if (userAgent) {
+                req.ctx.setTag('user_agent', userAgent);
+            }
 
             const traceId = req.ctx.getTraceId();
             if (traceId) {
