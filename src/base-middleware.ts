@@ -47,7 +47,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.addLoggerExtra('req', {
                 id: req.id,
                 method: req.method,
-                url: ctx.utils.redactSensitiveQueryParams(req.url),
+                url: ctx.utils.redactSensitiveQueryParams(req.path),
             });
 
             const requestStartedExtra = ctx.config.appDevMode
