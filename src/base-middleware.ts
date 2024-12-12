@@ -7,8 +7,9 @@ import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
     expressApp.use((req, res, next) => {
         try {
-            req.id = (req.headers[DEFAULT_REQUEST_ID_HEADER] || uuidv4()) as string;
-            res.setHeader(DEFAULT_REQUEST_ID_HEADER, req.id);
+            const requestId = (req.headers[DEFAULT_REQUEST_ID_HEADER] || uuidv4()) as string;
+            req.id = requestId;
+            res.setHeader(DEFAULT_REQUEST_ID_HEADER, requestId);
 
             res.setHeader('Surrogate-Control', 'no-store');
             res.setHeader(
@@ -25,10 +26,10 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
 
             req.originalContext = req.ctx = ctx.create(`Express ${req.method}`, {
                 parentSpanContext,
-                loggerPostfix: `[${req.id}]`,
+                loggerPostfix: `[${requestId}]`,
                 spanKind: 1, // SERVER
             });
-            req.ctx.set(REQUEST_ID_PARAM_NAME, req.id);
+            req.ctx.set(REQUEST_ID_PARAM_NAME, requestId);
 
             req.ctx.setTag('http.hostname', req.hostname);
             req.ctx.setTag('http.method', req.method);
@@ -36,7 +37,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.ctx.setTag('path', ctx.utils.redactSensitiveQueryParams(req.path));
             req.ctx.setTag('referer', ctx.utils.redactSensitiveQueryParams(req.get('referer')));
             req.ctx.setTag('remote_ip', req.ip ?? 'unknown');
-            req.ctx.setTag('request_id', req.id);
+            req.ctx.setTag('request_id', requestId);
             req.ctx.setTag('user_agent', userAgent);
 
             const traceId = req.ctx.getTraceId();
@@ -46,7 +47,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             }
 
             req.ctx.addLoggerExtra('req', {
-                id: req.id,
+                id: requestId,
                 method: req.method,
                 url: ctx.utils.redactSensitiveQueryParams(req.path),
             });
@@ -56,7 +57,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 : {
                       traceId,
                       req: {
-                          id: req.id,
+                          id: requestId,
                           method: req.method,
                           url: ctx.utils.redactSensitiveQueryParams(req.url),
                           headers: ctx.utils.redactSensitiveHeaders(req.headers),

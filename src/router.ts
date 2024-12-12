@@ -1,4 +1,4 @@
-import type {AppContext} from '@gravity-ui/nodekit';
+import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
@@ -106,7 +106,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                         service: 'self',
                         action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
                         responseStatus: res.statusCode,
-                        requestId: req.id,
+                        requestId: req.ctx.get(REQUEST_ID_PARAM_NAME) || '',
                         requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
                         requestMethod: req.method,
                         requestUrl: req.originalUrl,
