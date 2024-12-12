@@ -17,6 +17,9 @@ declare global {
     // eslint-disable-next-line
     namespace Express {
         export interface Request {
+            /**
+             * @deprecated Use req.ctx.get(REQUEST_ID_PARAM_NAME) instead of req.id
+             */
             id: string;
             ctx: AppContext;
             originalContext: AppContext;
@@ -27,6 +30,9 @@ declare global {
 
 declare module 'express' {
     export interface Request {
+        /**
+         * @deprecated Use req.ctx.get(REQUEST_ID_PARAM_NAME) instead of req.id
+         */
         id: string;
         ctx: AppContext;
         originalContext: AppContext;
