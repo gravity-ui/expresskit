@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/gravity-ui/expresskit/compare/v2.2.0...v2.3.0) (2024-12-27)
+
+
+### Features
+
+* mark `req.id` as deprecated ([#65](https://github.com/gravity-ui/expresskit/issues/65)) ([8d75e09](https://github.com/gravity-ui/expresskit/commit/8d75e09ec2e178ee50edc9fa1bd38214818d6fa6))
+
 ## [2.2.0](https://github.com/gravity-ui/expresskit/compare/v2.1.0...v2.2.0) (2024-12-03)
 
 
