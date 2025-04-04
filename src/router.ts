@@ -110,6 +110,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                         requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
                         requestMethod: req.method,
                         requestUrl: req.originalUrl,
+                        traceId: req.ctx.getTraceId() || '',
                     });
                 }
             });
