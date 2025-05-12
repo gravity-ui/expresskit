@@ -3,14 +3,27 @@ import {DEFAULT_REQUEST_ID_HEADER} from '../constants';
 import {NodeKit} from '@gravity-ui/nodekit';
 import request from 'supertest';
 
+const genRandomId = (length = 16) => {
+    return [...Array(length)].map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+};
+
 const APP_NAME = 'app';
+const USER_AGENT_HEADER = 'user-agent';
+const UBER_TRACE_ID_KEY = 'uber-trace-id';
+const X_TRACE_ID_KEY = 'x-trace-id';
 
 const setupApp = () => {
     const logger = {
         write: jest.fn(),
     };
 
-    const nodekit = new NodeKit({config: {appLoggingDestination: logger, appName: 'app'}});
+    const nodekit = new NodeKit({
+        config: {
+            appLoggingDestination: logger,
+            appName: APP_NAME,
+            appTracingEnabled: true,
+        },
+    });
     const routes = {
         'GET /get': {
             handler: (_: Request, res: Response) => {
@@ -69,7 +82,7 @@ describe('log system', () => {
         await agent
             .get('/get')
             .set(DEFAULT_REQUEST_ID_HEADER, requestId)
-            .set('user-agent', userAgent);
+            .set(USER_AGENT_HEADER, userAgent);
 
         // last log with response
         let log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
@@ -127,7 +140,7 @@ describe('log system', () => {
         await agent
             .post('/post')
             .set(DEFAULT_REQUEST_ID_HEADER, requestId)
-            .set('user-agent', userAgent);
+            .set(USER_AGENT_HEADER, userAgent);
 
         // last log with response
         let log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
@@ -270,5 +283,77 @@ describe('log system', () => {
                 url: `/log?q=${query}`,
             },
         });
+    });
+
+    it('log should contain traceId and spanId', async () => {
+        const {app, logger} = setupApp();
+
+        const agent = request.agent(app.express);
+
+        const requestId = Math.random().toString();
+        const userAgent = 'user-agent-' + Math.random().toString();
+
+        const traceId = genRandomId(32);
+        const spanId = genRandomId(16);
+        const traceFlags = '01';
+        const uberTraceId = `${traceId}:${spanId}:0:${traceFlags}`;
+
+        await agent
+            .get('/get')
+            .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+            .set(USER_AGENT_HEADER, userAgent)
+            .set(UBER_TRACE_ID_KEY, uberTraceId);
+
+        // last log with response
+        let log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // check response log
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request completed [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            traceId,
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+            },
+            res: {
+                statusCode: '200',
+                responseTime: expect.any(Number),
+                headers: {
+                    [DEFAULT_REQUEST_ID_HEADER]: requestId,
+                    [X_TRACE_ID_KEY]: traceId,
+                },
+            },
+        });
+
+        expect(log?.spanId).toBeTruthy();
+
+        // first log with request
+        log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // check request log
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request started [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            traceId,
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+                headers: {
+                    [DEFAULT_REQUEST_ID_HEADER]: requestId,
+                    [UBER_TRACE_ID_KEY]: uberTraceId,
+                },
+                remoteAddress: expect.any(String),
+                remotePort: expect.any(Number),
+            },
+        });
+
+        expect(log?.spanId).toBeTruthy();
     });
 });
