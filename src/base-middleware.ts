@@ -43,7 +43,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             const traceId = req.ctx.getTraceId();
             if (traceId) {
                 res.setHeader('x-trace-id', traceId);
-                req.ctx.addLoggerExtra('traceId', traceId);
             }
 
             req.ctx.addLoggerExtra('req', {
@@ -55,7 +54,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             const requestStartedExtra = ctx.config.appDevMode
                 ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
                 : {
-                      traceId,
                       req: {
                           id: requestId,
                           method: req.method,
@@ -74,7 +72,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 const responseExtra = ctx.config.appDevMode
                     ? {res: {responseTime, statusCode}}
                     : {
-                          traceId,
                           res: {
                               responseTime,
                               statusCode,
