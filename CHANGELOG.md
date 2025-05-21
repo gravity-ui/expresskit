@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/gravity-ui/expresskit/compare/v2.3.0...v2.4.0) (2025-05-21)
+
+
+### Features
+
+* add spanId to all logs, add tests for traceId and spanId check ([#69](https://github.com/gravity-ui/expresskit/issues/69)) ([cbc2644](https://github.com/gravity-ui/expresskit/commit/cbc2644ed3e32a5338dbb1098bcab78025f2e658))
+
 ## [2.3.0](https://github.com/gravity-ui/expresskit/compare/v2.2.0...v2.3.0) (2025-04-04)
 
 
