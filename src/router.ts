@@ -1,5 +1,6 @@
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
+import swaggerUi from 'swagger-ui-express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
@@ -14,6 +15,8 @@ import {
     HTTP_METHODS,
     HttpMethod,
 } from './types';
+
+import {OpenApiRegistry} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +75,12 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     return handler;
 }
 
-export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
+export function setupRoutes(
+    ctx: AppContext,
+    expressApp: Express,
+    routes: AppRoutes,
+    openapiRegistry?: OpenApiRegistry,
+) {
     const appPresets = getAppPresets(ctx.config.expressCspPresets);
 
     Object.entries(routes).forEach(([routeKey, rawRoute]) => {
@@ -89,7 +97,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const {
             authPolicy: routeAuthPolicy,
-            handler: _h,
+            handler: routeHandler,
             beforeAuth: _beforeAuth,
             afterAuth: _afterAuth,
             cspPresets,
@@ -155,10 +163,35 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             const targetApp = (route as AppMountDescription).handler({router, wrapRouteHandler});
             expressApp.use(routePath, wrappedMiddleware, targetApp || router);
         } else {
-            const handler = wrapRouteHandler((route as AppRouteDescription).handler, handlerName);
+            const handler = wrapRouteHandler(routeHandler as AppRouteHandler, handlerName);
             expressApp[method](routePath, wrappedMiddleware, handler);
+            const apiConfig = (routeHandler as AppRouteHandler).apiConfig;
+
+            if (openapiRegistry && apiConfig) {
+                openapiRegistry.registerRoute({
+                    method: method as HttpMethod,
+                    path: routePath,
+                    config: apiConfig,
+                });
+            }
         }
     });
+
+    if (ctx.config.openApiRegistry?.enabled && openapiRegistry) {
+        expressApp.get('/openapi.json', (_req, res) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(openapiRegistry.getOpenApiSchema());
+        });
+        expressApp.use(
+            '/docs',
+            swaggerUi.serve,
+            swaggerUi.setup(null, {
+                swaggerOptions: {
+                    url: '/openapi.json',
+                },
+            }),
+        );
+    }
 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
