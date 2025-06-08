@@ -17,3 +17,14 @@ export type {
 export {AuthPolicy} from './types';
 
 export * from './csp';
+
+// Export validator framework
+export {
+    withApi,
+    ValidationError
+} from './validator';
+export type {
+    ApiRequest,
+    ApiResponse,
+    ApiRouteConfig
+} from './validator';
