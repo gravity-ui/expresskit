@@ -1,8 +1,11 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z} from 'zod/v4';
-import {ValidationError} from './errors';
+import {ValidationError, ResponseValidationError} from './errors';
 
-export {ValidationError} from './errors';
+export {ValidationError, ResponseValidationError} from './errors';
+
+// Type to check if a response schema is provided in config
+export type HasResponseSchema<T> = T extends { response: z.ZodType<any> } ? true : false;
 
 // Utility type to ensure TProvided is exactly TExpected.
 // It leverages the `TProvided extends TExpected` constraint from the call site (e.g., in a generic function).
@@ -41,17 +44,32 @@ export interface ApiRequest<
     }>;
 }
 
-export interface ApiResponse<TResponse = unknown> extends Response {
-    serialized: {
-        <D extends TResponse>(status: number, data: Exact<TResponse, D>): void;
-    };
+// Base interface with common Response methods
+export interface BaseApiResponse extends Response {
+    // No serialization methods here
 }
+
+// Conditionally add serialization methods based on whether schema exists
+export type ApiResponse<TResponse = unknown, HasSchema extends boolean = true> = 
+    BaseApiResponse & 
+    (HasSchema extends true 
+        ? { 
+            // Both methods available only when schema exists
+            typedJson: <D extends TResponse>(status: number, data: Exact<TResponse, D>) => void;
+            serialize: <D extends TResponse>(status: number, data: D) => void;
+        } 
+        : {
+            // Neither method available when schema doesn't exist
+            typedJson?: never;
+            serialize?: never;
+        }
+    );
 
 // Type for API route configuration
 export interface ApiRouteConfig {
     name?: string;
     tags?: string[];
-    manual?: boolean;
+    manualValidation?: boolean; // If true, request validation must be called manually
     request?: {
         body?: z.ZodType<any>;
         params?: z.ZodType<any>;
@@ -97,12 +115,15 @@ export function withApi<
     THeaders = InferZodType<THeadersSchema>,
     TResponse = InferZodType<TResponseSchema>,
 >(config: TConfig) {
-    type IsManualActual = TConfig['manual'] extends true ? true : false;
+    type IsManualActual = TConfig['manualValidation'] extends true ? true : false;
+
+    // Check if a response schema is provided
+    type HasResponseSchema = TConfig['response'] extends z.ZodType<any> ? true : false;
 
     return function (
         handler: (
             req: ApiRequest<IsManualActual, TBody, TParams, TQuery, THeaders>,
-            res: ApiResponse<TResponse>,
+            res: ApiResponse<TResponse, HasResponseSchema>,
         ) => Promise<void> | void,
     ) {
         return async (expressReq: ExpressRequest, expressRes: Response) => {
@@ -178,7 +199,7 @@ export function withApi<
             };
 
             // Automatically validate request parts unless manual validation is specified
-            if (config.manual !== true) {
+            if (config.manualValidation !== true) {
                 try {
                     const validatedData = await enhancedReq.validate();
                     // Assign validated data using type assertions to satisfy the conditional types
@@ -201,16 +222,56 @@ export function withApi<
             // the respective part on enhancedReq remains from expressReq.
             // This aligns with the conditional types for enhancedReq properties.
 
-            const enhancedRes = expressRes as ApiResponse<TResponse>;
+            // Create base response without serialization methods
+            const enhancedRes = expressRes as BaseApiResponse;
+            
+            // Add serialization methods only if response schema is defined
+            if (config.response) {
+                // Cast to API response with schema
+                const typedRes = enhancedRes as ApiResponse<TResponse, true>;
+                
+                // Add typedJson method
+                typedRes.typedJson = function <D extends TResponse>(
+                    status: number,
+                    data: Exact<TResponse, D>,
+                ): void {
+                    (expressRes as Response).status(status).json(data);
+                };
+                
+                // Add serialize method
+                typedRes.serialize = function <D extends TResponse>(
+                    status: number,
+                    data: D,
+                ): void {
+                    // Validate response data against the schema
+                    const result = config.response!.safeParse(data);
+                
+                    if (!result.success) {
+                        // If validation fails, respond with a 500 error
+                        const error = new ResponseValidationError('Invalid response data', result.error);
+                        (expressRes as Response).status(error.statusCode).json({
+                            error: error.message,
+                            details: error.details
+                        });
+                        return;
+                    }
+                    
+                    // If validation passes, respond with the validated data
+                    (expressRes as Response).status(status).json(result.data);
+                };
+            }
 
-            enhancedRes.serialized = function <D extends TResponse>(
-                status: number,
-                data: Exact<TResponse, D>,
-            ): void {
-                (expressRes as Response).status(status).json(data); // Changed res to expressRes
-            };
-
-            await handler(enhancedReq, enhancedRes);
+            try {
+                await handler(enhancedReq, enhancedRes as ApiResponse<TResponse, HasResponseSchema>);
+            } catch (error) {
+                // If an error occurs and hasn't been handled, respond with a 500 error
+                if (!expressRes.headersSent) {
+                    expressRes.status(500).json({
+                        error: error instanceof Error ? error.message : 'Internal Server Error',
+                        details: error instanceof Error ? error : undefined
+                    });
+                }
+            }
         };
     };
 }
