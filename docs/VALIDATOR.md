@@ -109,7 +109,7 @@ The `res` object in your handler is enhanced with the following methods when a `
 
 *   **`res.typedJson(data)`**:
     *   Sends a JSON response.
-    *   The `data` argument is **type-checked** at development time against the `ApiRouteConfig.response` schema. This helps catch type mismatches during coding.
+    *   The `data` argument is **type-checked** at compile time against the `ApiRouteConfig.response` schema. This helps catch type mismatches during coding.
     *   It **does not perform runtime validation** or data transformation (like stripping extra fields not defined in the schema). You are responsible for ensuring the data structure is correct if you bypass `res.serialize()`.
     *   Useful if you are certain about the data's structure and want to skip the overhead of runtime validation/serialization.
 
