@@ -1,6 +1,27 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z} from 'zod/v4';
 
+export interface OpenApiRegistryConfig {
+    enabled?: boolean;
+    path?: string;
+    version?: string;
+    title?: string;
+    description?: string;
+    contact?: {
+        name?: string;
+        email?: string;
+        url?: string;
+    };
+    license?: {
+        name?: string;
+        url?: string;
+    };
+    servers?: {
+        url: string;
+        description?: string;
+    }[];
+}
+
 // Utility type to ensure TProvided is exactly TExpected.
 export type Exact<TExpected, TProvided extends TExpected> =
     Exclude<keyof TProvided, keyof TExpected> extends never

@@ -1,6 +1,6 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z, ZodError} from 'zod/v4'; // Import ZodError
-import {ValidationError, ResponseValidationError} from './errors';
+import {ValidationError, SerializationError} from './errors';
 import {
     ApiRequest,
     ApiResponse,
@@ -10,8 +10,10 @@ import {
     IsManualValidation,
     InferDataFromResponseDef,
 } from './types';
+import { AppRouteHandler } from '../types';
 
-export {ValidationError, ResponseValidationError} from './errors';
+export {ValidationError, SerializationError} from './errors';
+export {OpenApiRegistry} from './openapi-registry';
 export * from './types';
 
 export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
@@ -24,7 +26,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             res: ApiResponse<TConfig>,
         ) => Promise<void> | void,
     ) {
-        const finalHandler = async (expressReq: ExpressRequest, expressRes: Response) => {
+        const finalHandler: AppRouteHandler = async (expressReq: ExpressRequest, expressRes: Response) => {
             const enhancedReq = expressReq as ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>;
 
             enhancedReq.validate = async () => {
@@ -119,7 +121,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 const result = schemaToValidate.safeParse(data);
             
                 if (!result.success) {
-                    throw new ResponseValidationError(
+                    throw new SerializationError(
                         `Invalid response data for status code ${String(statusCode)}`,
                         result.error
                     );
@@ -153,11 +155,11 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                             })),
                         });
                     }
-                } else if (error instanceof ResponseValidationError) {
+                } else if (error instanceof SerializationError) {
                     const zodError = error.details as ZodError | undefined;
                     // Log the server-side error
                     console.error(
-                        'ResponseValidationError: Failed to serialize response.',
+                        'SerializationError: Failed to serialize response.',
                         {
                             routeName: config.name,
                             message: error.message,
@@ -177,8 +179,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             }
         };
 
-        // Attach apiConfig for OpenAPI generator
-        (finalHandler as any).apiConfig = config;
+        finalHandler.apiConfig = config;
 
         return finalHandler;
     };
