@@ -1,11 +1,6 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z} from 'zod/v4';
 
-// Updated HasResponseSchema - if responses is mandatory, this might always be true or be removed.
-// For now, let's assume responses must be a non-empty record if it's mandatory.
-// If responses is truly mandatory and must have entries, HasResponseSchema could be removed.
-// Let's simplify ApiResponse first and then see if HasResponseSchema is still needed.
-
 // Utility type to ensure TProvided is exactly TExpected.
 export type Exact<TExpected, TProvided extends TExpected> =
     Exclude<keyof TProvided, keyof TExpected> extends never
@@ -17,7 +12,6 @@ export type Exact<TExpected, TProvided extends TExpected> =
               >]: `Error: Unexpected property '${Extract<K, string>}'`;
           };
 
-// Type definitions for API Request and Response
 export interface ApiRequest<
     IsManual extends boolean,
     TBody = unknown,
@@ -38,7 +32,6 @@ export interface ApiRequest<
     }>;
 }
 
-// Base interface with common Response methods
 export interface BaseApiResponse extends Response {
     // No serialization methods here
 }
@@ -68,7 +61,6 @@ interface TypedResponseMethods<TResponses extends Record<number, any>> { // Stat
     ) => void;
 }
 
-// Type for API route configuration
 export interface ApiRouteConfig {
     name?: string; 
     operationId?: string; 
@@ -82,18 +74,15 @@ export interface ApiRouteConfig {
         query?: z.ZodType<any>;
         headers?: z.ZodType<any>;
     };
-    // 'responses' is now mandatory
     responses: Record<
         number, 
         { schema: z.ZodType<any>; description?: string }
     >;
 }
 
-// Infer types from Zod schemas
 export type InferZodType<T extends z.ZodType<any> | undefined> =
     T extends z.ZodType<any> ? z.infer<T> : unknown;
 
-// Generic type parameters for withApi function
 export type WithApiTypeParams<
     TConfig extends ApiRouteConfig,
     TBodySchema extends z.ZodType<any> = TConfig['request'] extends {body: infer U}
@@ -116,41 +105,30 @@ export type WithApiTypeParams<
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
-    // Singular TResponseSchema and TResponse are removed as ApiResponse<TConfig> handles multiple responses
     TBody = InferZodType<TBodySchema>,
     TParams = InferZodType<TParamsSchema>,
     TQuery = InferZodType<TQuerySchema>,
     THeaders = InferZodType<THeadersSchema>,
 > = {
     IsManualActual: TConfig['manualValidation'] extends true ? true : false;
-    // HasResponseSchema field is removed as ApiResponse<TConfig> handles this implicitly
     TBody: TBody;
     TParams: TParams;
     TQuery: TQuery;
     THeaders: THeaders;
 };
 
-// Helper type for getting the manual validation status (remains useful)
+// Helper type for getting the manual validation status
 export type IsManualValidation<TConfig extends ApiRouteConfig> = 
     TConfig['manualValidation'] extends true ? true : false;
 
-// This specific helper might be redundant if HasResponseSchema<TConfig> is used consistently
-// We will rely on the updated HasResponseSchema<TConfig> directly.
-// export type HasResponseSchemaType<TConfig extends ApiRouteConfig> = 
-// TConfig['responses'] extends Record<number, any> ? true : false;
-
-
-// Type for the handler function used with withApi
 export type ApiHandler<
     TConfig extends ApiRouteConfig,
-    // P now primarily carries request-related inferred types
     P extends WithApiTypeParams<TConfig> = WithApiTypeParams<TConfig>,
 > = (
     req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders'] >,
-    res: ApiResponse<TConfig>, // ApiResponse now directly uses TConfig
+    res: ApiResponse<TConfig>,
     next: (err?: any) => void,
 ) => void | Promise<void>;
 
-// Updated ApiResponse type - simplified as TConfig['responses'] is now mandatory
 export type ApiResponse<TConfig extends ApiRouteConfig> = BaseApiResponse &
-    TypedResponseMethods<TConfig['responses']>; // TConfig['responses'] is guaranteed to exist
+    TypedResponseMethods<TConfig['responses']>;

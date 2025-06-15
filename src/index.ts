@@ -18,7 +18,6 @@ export {AuthPolicy} from './types';
 
 export * from './csp';
 
-// Export validator framework
 export {
     withApi,
     ValidationError
