@@ -3,33 +3,27 @@ import {z} from 'zod/v4';
 import {ValidationError, ResponseValidationError} from './errors';
 import {
     ApiRequest,
-    ApiResponse, // This will now be ApiResponse<TConfig>
+    ApiResponse,
     ApiRouteConfig,
     Exact,
     WithApiTypeParams,
     IsManualValidation,
-    // InferZodType, // No longer needed here if using InferDataFromResponseDef
-    ExtractSchemaFromResponseDef,
-    InferDataFromResponseDef // Ensure this is imported
+    InferDataFromResponseDef,
 } from './types';
 
 export {ValidationError, ResponseValidationError} from './errors';
 export * from './types';
 
-// withApi function definition
 export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
-    // Use the type utilities from types.ts
     type Params = WithApiTypeParams<TConfig>;
     type IsManualActual = IsManualValidation<TConfig>;
     
     return function (
         handler: (
             req: ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>,
-            // ApiResponse now takes TConfig directly to infer typedJson/serialize methods
             res: ApiResponse<TConfig>,
         ) => Promise<void> | void,
     ) {
-        // Attach the apiConfig to the handler function itself for OpenAPI generation
         const finalHandler = async (expressReq: ExpressRequest, expressRes: Response) => {
             const enhancedReq = expressReq as ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>;
 
@@ -54,7 +48,6 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                     dataToValidate.headers = expressReq.headers;
                 }
 
-                // If no schemas are defined, return empty objects for all parts
                 if (Object.keys(shape).length === 0) {
                     return {
                         body: {} as Params['TBody'],
@@ -68,11 +61,9 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 const result = await combinedSchema.safeParseAsync(dataToValidate);
 
                 if (!result.success) {
-                    // result.error will contain aggregated errors from all parts
                     throw new ValidationError('Invalid request data', result.error);
                 }
 
-                // Initialize with defaults, then override with validated data if present
                 const validatedData = result.data as { 
                     body?: Params['TBody'], 
                     params?: Params['TParams'], 
@@ -115,20 +106,12 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 (enhancedReq as { query: Params['TQuery'] }).query = validatedData.query;
                 (enhancedReq as { headers: Params['THeaders'] }).headers = validatedData.headers;
             }
-            // If manual mode (IsManualActual is true), or no schema for a part,
-            // the respective part on enhancedReq remains from expressReq.
-            // This aligns with the conditional types for enhancedReq properties.
+           
 
-            // Create base response without serialization methods
             const enhancedRes = expressRes as ApiResponse<TConfig>; // Cast directly to the new ApiResponse<TConfig>
             
-            // Since config.responses is now mandatory, the 'if (config.responses)' check can be removed.
-            // The methods typedJson and serialize are always part of ApiResponse<TConfig>.
-
             enhancedRes.typedJson = function <
                 S extends keyof TConfig['responses'],
-                // D is the actual data type being passed, constrained by the schema for status code S
-                // Use InferDataFromResponseDef directly, matching TypedResponseMethods
                 D extends InferDataFromResponseDef<TConfig['responses'][S]>
             >(
                 statusCode: S,
@@ -139,7 +122,6 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             
             enhancedRes.serialize = function <S extends keyof TConfig['responses']>(
                 statusCode: S,
-                // Use InferDataFromResponseDef directly, matching TypedResponseMethods
                 data: InferDataFromResponseDef<TConfig['responses'][S]> 
             ): void {
                 const responseDef = config.responses[statusCode as number]; 
