@@ -18,8 +18,9 @@ export class OpenApiRegistry {
     }
 
     public registerRoute(route: { path: string; method: string; config: ApiRouteConfig; }): void {
+        const openApiPath = route.path.replace(/\/:([^/]+)/g, '/{$1}');
         this.routes.push({
-            path: route.path,
+            path: openApiPath,
             method: route.method.toLowerCase(),
             config: route.config
         });

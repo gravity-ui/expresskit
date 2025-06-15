@@ -2,6 +2,7 @@ import {z} from 'zod/v4';
 import {withApi, AppRoutes} from '../index'; // Adjust path based on actual export structure
 import {ExpressKit} from '../expresskit'; // Adjust path
 import {NodeKit} from '@gravity-ui/nodekit'; // Assuming this is a peer dependency or similar
+import crypto from 'crypto';
 
 // --- Basic Schemas ---
 const UserSchema = z.object({
@@ -25,6 +26,17 @@ const ErrorSchema = z.object({
     error: z.string(),
     code: z.string().optional(),
     issues: z.array(z.object({message: z.string(), path: z.array(z.string().or(z.number())) })).optional(),
+});
+
+const ItemDetailSchema = z.object({
+    property: z.string(),
+    value: z.string(),
+});
+
+const ExtendedItemSchema = ItemSchema.extend({
+    description: z.string().optional(),
+    details: z.array(ItemDetailSchema),
+    relatedItemIds: z.array(z.string().uuid()).optional(),
 });
 
 // --- Example 1: GET User by ID --- 
@@ -105,7 +117,7 @@ const createItemHandler = withApi(CreateItemConfig)(async (req, res) => {
     }
 
     const newItem = {
-        itemId: `item_${Date.now()}`,
+        itemId: `item_${Date.now()}`, // wrong contract for example purposes, will cause serialization error
         itemName,
         quantity,
     };
@@ -168,7 +180,6 @@ const updateUserEmailHandler = withApi(UpdateUserEmailConfig)(async (req, res) =
     }
 });
 
-
 // --- Example 4: No Response Body (204 No Content) ---
 const DeleteItemConfig = {
     operationId: 'deleteItem',
@@ -204,6 +215,50 @@ const deleteItemHandler = withApi(DeleteItemConfig)(async (req, res) => {
     res.typedJson(204, undefined); 
 });
 
+// --- Example 5: GET Items (List of Nested Objects) ---
+const GetItemsConfig = {
+    operationId: 'getItems',
+    summary: 'Get a list of items with nested details',
+    tags: ['Items'],
+    request: {
+        query: z.object({
+            limit: z.coerce.number().min(1).max(10).default(10),
+            includeDetails: z.stringbool().optional().default(false),
+        })
+    },
+    responses: {
+        200: {
+            schema: z.array(ExtendedItemSchema),
+            description: 'A list of items retrieved successfully.',
+        },
+        400: {
+            schema: ErrorSchema,
+            description: 'Invalid query parameters.'
+        }
+    },
+};
+
+const getItemsHandler = withApi(GetItemsConfig)(async (req, res) => {
+    const { limit } = req.query; // Typed and validated
+
+    const includeDetails = true;
+    const itemsData = Array.from({ length: Math.min(limit || 10, 5) }, (_, i) => ({ // Limit to 5 for example
+        itemId: crypto.randomUUID(), 
+        itemName: `Item ${i + 1}`,
+        quantity: (i + 1) * 2,
+        description: includeDetails ? `This is detailed description for item ${i + 1}.` : undefined,
+        details: includeDetails ? [
+            { property: 'Color', value: i % 2 === 0 ? 'Red' : 'Blue' },
+            { property: 'Material', value: 'Recycled' }
+        ] : [],
+        relatedItemIds: i % 2 === 0 ? [crypto.randomUUID(), crypto.randomUUID()] : [],
+        // Extra field to demonstrate stripping by serialize
+        internalNotes: "This note is for internal use only and should be stripped."
+    }));
+
+    res.serialize(200, itemsData);
+});
+
 
 // --- Setup ExpressKit Application (Illustrative) ---
 export const exampleRoutes: AppRoutes = {
@@ -211,6 +266,7 @@ export const exampleRoutes: AppRoutes = {
     'POST /items': createItemHandler,
     'PUT /users/:userId/email': updateUserEmailHandler,
     'DELETE /items/:itemId': deleteItemHandler,
+    'GET /items': getItemsHandler, // Added new route
 };
 
 // To run this example (you'd typically have this in your main app file):
@@ -226,6 +282,7 @@ const nodekit = new NodeKit({
         }
     }
 });
+
 const app = new ExpressKit(nodekit, exampleRoutes);
 
 app.run()
@@ -239,4 +296,6 @@ console.log('  POST /items with JSON body { "itemName": "forbidden_item", "quant
 console.log('  PUT /users/123e4567-e89b-12d3-a456-426614174000/email with JSON body { "email": "new@example.com", "confirmEmail": "new@example.com" }');
 console.log('  PUT /users/123e4567-e89b-12d3-a456-426614174000/email with JSON body { "email": "new@example.com", "confirmEmail": "other@example.com" }');
 console.log('  DELETE /items/123e4567-e89b-12d3-a456-426614174000');
+console.log('  GET /items');
+console.log('  GET /items?limit=3&includeDetails=false');
 
