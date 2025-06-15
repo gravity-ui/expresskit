@@ -222,6 +222,7 @@ const nodekit = new NodeKit({
             version: '3.0.0',
             title: 'Example API',
             description: 'An example API to demonstrate Zod validation and ExpressKit integration.',
+            servers: [{ url: 'http://localhost:3030', description: 'Local server' }],
         }
     }
 });

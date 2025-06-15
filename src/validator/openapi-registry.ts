@@ -34,7 +34,7 @@ export class OpenApiRegistry {
                 version: this.config.version || '1.0.0',
                 description: this.config.description || 'Generated API documentation'
             },
-            servers: this.config.servers || [{ url: 'http://localhost:3000' }],
+            servers: this.config.servers || [{ url: 'http://localhost:3030' }],
             paths: {} as Record<string, any>,
             components: {
                 schemas: {} as Record<string, any>
