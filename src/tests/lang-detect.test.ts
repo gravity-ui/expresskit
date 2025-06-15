@@ -7,6 +7,9 @@ const setupApp = (langConfig: NodeKit['config'] = {}) => {
         config: {
             appDefaultLang: 'ru',
             appAllowedLangs: ['ru', 'en'],
+            appLoggingDestination: {
+                write: () => {},
+            },
             ...langConfig,
         },
     });
