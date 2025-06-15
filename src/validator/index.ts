@@ -3,13 +3,14 @@ import {z} from 'zod/v4';
 import {ValidationError, ResponseValidationError} from './errors';
 import {
     ApiRequest,
-    ApiResponse,
+    ApiResponse, // This will now be ApiResponse<TConfig>
     ApiRouteConfig,
-    BaseApiResponse,
     Exact,
     WithApiTypeParams,
     IsManualValidation,
-    HasResponseSchemaType
+    // InferZodType, // No longer needed here if using InferDataFromResponseDef
+    ExtractSchemaFromResponseDef,
+    InferDataFromResponseDef // Ensure this is imported
 } from './types';
 
 export {ValidationError, ResponseValidationError} from './errors';
@@ -20,15 +21,16 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
     // Use the type utilities from types.ts
     type Params = WithApiTypeParams<TConfig>;
     type IsManualActual = IsManualValidation<TConfig>;
-    type HasResponseSchema = HasResponseSchemaType<TConfig>;
     
     return function (
         handler: (
             req: ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>,
-            res: ApiResponse<Params['TResponse'], HasResponseSchema>,
+            // ApiResponse now takes TConfig directly to infer typedJson/serialize methods
+            res: ApiResponse<TConfig>,
         ) => Promise<void> | void,
     ) {
-        return async (expressReq: ExpressRequest, expressRes: Response) => {
+        // Attach the apiConfig to the handler function itself for OpenAPI generation
+        const finalHandler = async (expressReq: ExpressRequest, expressRes: Response) => {
             const enhancedReq = expressReq as ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>;
 
             enhancedReq.validate = async () => {
@@ -118,38 +120,47 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             // This aligns with the conditional types for enhancedReq properties.
 
             // Create base response without serialization methods
-            const enhancedRes = expressRes as BaseApiResponse;
+            const enhancedRes = expressRes as ApiResponse<TConfig>; // Cast directly to the new ApiResponse<TConfig>
             
-            // Add serialization methods only if response schema is defined
-            if (config.response) {
-                // Cast to API response with schema
-                const typedRes = enhancedRes as ApiResponse<Params['TResponse'], true>;
-                
-                // @ts-ignore
-                typedRes.typedJson = function <D extends Params['TResponse']>(
-                    data: Exact<Params['TResponse'], D>,
-                ): void {
-                    (expressRes as Response).json(data);
-                };
-                
-                // Add serialize method
-                typedRes.serialize = function <D extends Params['TResponse']>(
-                    data: D,
-                ): void {
-                    // Validate response data against the schema
-                    const result = config.response!.safeParse(data);
-                
-                    if (!result.success) {
-                        // If validation fails, throw an error to be handled by the global error handler
-                        throw new ResponseValidationError('Invalid response data', result.error);
-                    }
-                    
-                    // If validation passes, respond with the validated data
-                    (expressRes as Response).json(result.data);
-                };
-            }
+            // Since config.responses is now mandatory, the 'if (config.responses)' check can be removed.
+            // The methods typedJson and serialize are always part of ApiResponse<TConfig>.
 
-            await handler(enhancedReq, enhancedRes as ApiResponse<Params['TResponse'], HasResponseSchema>);
+            enhancedRes.typedJson = function <
+                S extends keyof TConfig['responses'],
+                // D is the actual data type being passed, constrained by the schema for status code S
+                // Use InferDataFromResponseDef directly, matching TypedResponseMethods
+                D extends InferDataFromResponseDef<TConfig['responses'][S]>
+            >(
+                statusCode: S,
+                data: Exact<InferDataFromResponseDef<TConfig['responses'][S]>, D>
+            ): void {
+                expressRes.status(statusCode as number).json(data);
+            };
+            
+            enhancedRes.serialize = function <S extends keyof TConfig['responses']>(
+                statusCode: S,
+                // Use InferDataFromResponseDef directly, matching TypedResponseMethods
+                data: InferDataFromResponseDef<TConfig['responses'][S]> 
+            ): void {
+                const responseDef = config.responses[statusCode as number]; 
+
+                const schemaToValidate = responseDef.schema; 
+                const result = schemaToValidate.safeParse(data);
+            
+                if (!result.success) {
+                    throw new ResponseValidationError(
+                        `Invalid response data for status code ${String(statusCode)}`,
+                        result.error
+                    );
+                }
+                expressRes.status(statusCode as number).json(result.data);
+            };
+
+            await handler(enhancedReq, enhancedRes);
         };
+
+        // Attach apiConfig for OpenAPI generator
+        (finalHandler as any)._apiConfig = config;
+        return finalHandler;
     };
 }

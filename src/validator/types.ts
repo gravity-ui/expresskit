@@ -1,8 +1,10 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z} from 'zod/v4';
 
-// Type to check if a response schema is provided in config
-export type HasResponseSchema<T> = T extends { response: z.ZodType<any> } ? true : false;
+// Updated HasResponseSchema - if responses is mandatory, this might always be true or be removed.
+// For now, let's assume responses must be a non-empty record if it's mandatory.
+// If responses is truly mandatory and must have entries, HasResponseSchema could be removed.
+// Let's simplify ApiResponse first and then see if HasResponseSchema is still needed.
 
 // Utility type to ensure TProvided is exactly TExpected.
 export type Exact<TExpected, TProvided extends TExpected> =
@@ -41,34 +43,50 @@ export interface BaseApiResponse extends Response {
     // No serialization methods here
 }
 
-// Conditionally add serialization methods based on whether schema exists
-export type ApiResponse<TResponse = unknown, HasSchema extends boolean = true> = 
-    BaseApiResponse & 
-    (HasSchema extends true 
-        ? { 
-            // Both methods available only when schema exists
-            typedJson: <D extends TResponse>(data: Exact<TResponse, D>) => void;
-            serialize: <D extends TResponse>(data: D) => void;
-        } 
-        : {
-            // Neither method available when schema doesn't exist
-            typedJson?: never;
-            serialize?: never;
-        }
-    );
+// Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.responses
+export type ExtractSchemaFromResponseDef<TDef> = TDef extends { schema: infer S } // Simplified: TDef is always an object with a schema
+    ? S extends z.ZodType<any> ? S : never
+    : never;
+
+// Helper to infer data type from a response definition - EXPORT THIS
+export type InferDataFromResponseDef<TDef> = z.infer<ExtractSchemaFromResponseDef<TDef>>;
+
+// Interface for the response methods that will be typed based on ApiRouteConfig['responses']
+interface TypedResponseMethods<TResponses extends Record<number, any>> { // Status code key is number
+    typedJson: <
+        S extends keyof TResponses, // S is the status code (number)
+        // D is the actual data type being passed, constrained by the schema for status code S
+        D extends InferDataFromResponseDef<TResponses[S]>
+    >(
+        statusCode: S,
+        data: Exact<InferDataFromResponseDef<TResponses[S]>, D>
+    ) => void;
+
+    serialize: <S extends keyof TResponses>(
+        statusCode: S, // S is the status code (number)
+        data: InferDataFromResponseDef<TResponses[S]> // Exact not always needed for serialize, but good for consistency
+    ) => void;
+}
 
 // Type for API route configuration
 export interface ApiRouteConfig {
-    name?: string;
+    name?: string; 
+    operationId?: string; 
+    summary?: string; 
+    description?: string; 
     tags?: string[];
-    manualValidation?: boolean; // If true, request validation must be called manually
+    manualValidation?: boolean; 
     request?: {
         body?: z.ZodType<any>;
         params?: z.ZodType<any>;
         query?: z.ZodType<any>;
         headers?: z.ZodType<any>;
     };
-    response?: z.ZodType<any>;
+    // 'responses' is now mandatory
+    responses: Record<
+        number, 
+        { schema: z.ZodType<any>; description?: string }
+    >;
 }
 
 // Infer types from Zod schemas
@@ -98,28 +116,41 @@ export type WithApiTypeParams<
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
-    TResponseSchema extends z.ZodType<any> = TConfig['response'] extends z.ZodType<any>
-        ? TConfig['response']
-        : z.ZodType<unknown>,
+    // Singular TResponseSchema and TResponse are removed as ApiResponse<TConfig> handles multiple responses
     TBody = InferZodType<TBodySchema>,
     TParams = InferZodType<TParamsSchema>,
     TQuery = InferZodType<TQuerySchema>,
     THeaders = InferZodType<THeadersSchema>,
-    TResponse = InferZodType<TResponseSchema>,
 > = {
     IsManualActual: TConfig['manualValidation'] extends true ? true : false;
-    HasResponseSchema: TConfig['response'] extends z.ZodType<any> ? true : false;
+    // HasResponseSchema field is removed as ApiResponse<TConfig> handles this implicitly
     TBody: TBody;
     TParams: TParams;
     TQuery: TQuery;
     THeaders: THeaders;
-    TResponse: TResponse;
 };
 
-// Helper type for getting the manual validation status
+// Helper type for getting the manual validation status (remains useful)
 export type IsManualValidation<TConfig extends ApiRouteConfig> = 
     TConfig['manualValidation'] extends true ? true : false;
 
-// Helper type for checking if response schema exists
-export type HasResponseSchemaType<TConfig extends ApiRouteConfig> = 
-    TConfig['response'] extends z.ZodType<any> ? true : false;
+// This specific helper might be redundant if HasResponseSchema<TConfig> is used consistently
+// We will rely on the updated HasResponseSchema<TConfig> directly.
+// export type HasResponseSchemaType<TConfig extends ApiRouteConfig> = 
+// TConfig['responses'] extends Record<number, any> ? true : false;
+
+
+// Type for the handler function used with withApi
+export type ApiHandler<
+    TConfig extends ApiRouteConfig,
+    // P now primarily carries request-related inferred types
+    P extends WithApiTypeParams<TConfig> = WithApiTypeParams<TConfig>,
+> = (
+    req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders'] >,
+    res: ApiResponse<TConfig>, // ApiResponse now directly uses TConfig
+    next: (err?: any) => void,
+) => void | Promise<void>;
+
+// Updated ApiResponse type - simplified as TConfig['responses'] is now mandatory
+export type ApiResponse<TConfig extends ApiRouteConfig> = BaseApiResponse &
+    TypedResponseMethods<TConfig['responses']>; // TConfig['responses'] is guaranteed to exist
