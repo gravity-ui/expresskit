@@ -1,5 +1,6 @@
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
+import swaggerUi from 'swagger-ui-express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
@@ -176,8 +177,17 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             res.setHeader('Content-Type', 'application/json');
             res.send(openapiRegistry.getOpenApiSchema());
         });
+        expressApp.use(
+            '/docs',
+            swaggerUi.serve,
+            swaggerUi.setup(null, {
+                swaggerOptions: {
+                    url: '/openapi.json'
+                }
+            })
+        );
     }
-
+ 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
             Promise.resolve(ctx.config.appFinalErrorHandler?.(error, req, res, next)).catch(next);

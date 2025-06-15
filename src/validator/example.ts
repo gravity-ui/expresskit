@@ -215,7 +215,16 @@ export const exampleRoutes: AppRoutes = {
 
 // To run this example (you'd typically have this in your main app file):
 
-const nodekit = new NodeKit();
+const nodekit = new NodeKit({
+    config: {
+        openApiRegistry: {
+            enabled: true,
+            version: '3.0.0',
+            title: 'Example API',
+            description: 'An example API to demonstrate Zod validation and ExpressKit integration.',
+        }
+    }
+});
 const app = new ExpressKit(nodekit, exampleRoutes);
 
 app.run()
