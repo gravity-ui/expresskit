@@ -1,5 +1,5 @@
 import {Request as ExpressRequest, Response} from 'express';
-import {z} from 'zod/v4';
+import {z, ZodError} from 'zod/v4'; // Import ZodError
 import {ValidationError, ResponseValidationError} from './errors';
 import {
     ApiRequest,
@@ -97,17 +97,6 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 };
             };
 
-            // Automatically validate request parts unless manual validation is specified
-            if (config.manualValidation !== true) {
-                const validatedData = await enhancedReq.validate();
-                // Assign validated data using type assertions to satisfy the conditional types
-                (enhancedReq as { body: Params['TBody'] }).body = validatedData.body;
-                (enhancedReq as { params: Params['TParams'] }).params = validatedData.params;
-                (enhancedReq as { query: Params['TQuery'] }).query = validatedData.query;
-                (enhancedReq as { headers: Params['THeaders'] }).headers = validatedData.headers;
-            }
-           
-
             const enhancedRes = expressRes as ApiResponse<TConfig>; // Cast directly to the new ApiResponse<TConfig>
             
             enhancedRes.typedJson = function <
@@ -138,11 +127,59 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 expressRes.status(statusCode as number).json(result.data);
             };
 
-            await handler(enhancedReq, enhancedRes);
+            try {
+                // Automatically validate request parts unless manual validation is specified
+                if (config.manualValidation !== true) {
+                    const validatedData = await enhancedReq.validate();
+                    // Assign validated data using type assertions to satisfy the conditional types
+                    (enhancedReq as { body: Params['TBody'] }).body = validatedData.body;
+                    (enhancedReq as { params: Params['TParams'] }).params = validatedData.params;
+                    (enhancedReq as { query: Params['TQuery'] }).query = validatedData.query;
+                    (enhancedReq as { headers: Params['THeaders'] }).headers = validatedData.headers;
+                }
+            
+                await handler(enhancedReq, enhancedRes);
+            } catch (error: any) {
+                if (error instanceof ValidationError) {
+                    if (!expressRes.headersSent) {
+                        const zodError = error.details as ZodError | undefined;
+                        expressRes.status(error.statusCode || 400).json({
+                            error: error.message || 'Validation error',
+                            code: 'VALIDATION_ERROR',
+                            issues: zodError?.issues.map((issue: z.ZodIssue) => ({
+                                path: issue.path,
+                                message: issue.message,
+                                code: issue.code,
+                            })),
+                        });
+                    }
+                } else if (error instanceof ResponseValidationError) {
+                    const zodError = error.details as ZodError | undefined;
+                    // Log the server-side error
+                    console.error(
+                        'ResponseValidationError: Failed to serialize response.',
+                        {
+                            routeName: config.name,
+                            message: error.message,
+                            issues: zodError?.issues,
+                        }
+                    );
+                    if (!expressRes.headersSent) {
+                        expressRes.status(error.statusCode || 500).json({
+                            error: 'Internal Server Error',
+                            code: 'RESPONSE_SERIALIZATION_FAILED',
+                        });
+                    }
+                } else {
+                    // For any other errors, re-throw them to be handled by Express's general error handlers
+                    throw error;
+                }
+            }
         };
 
         // Attach apiConfig for OpenAPI generator
-        (finalHandler as any)._apiConfig = config;
+        (finalHandler as any).apiConfig = config;
+
         return finalHandler;
     };
 }
