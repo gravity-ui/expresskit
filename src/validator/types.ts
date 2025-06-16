@@ -39,7 +39,7 @@ export interface ApiRequest<
     TParams = unknown,
     TQuery = unknown,
     THeaders = unknown,
-> extends Omit<ExpressRequest, 'body' | 'params' | 'query' | 'headers'> { 
+> extends Omit<ExpressRequest, 'body' | 'params' | 'query' | 'headers'> {
     body: IsManual extends true ? ExpressRequest['body'] : TBody;
     params: IsManual extends true ? ExpressRequest['params'] : TParams;
     query: IsManual extends true ? ExpressRequest['query'] : TQuery;
@@ -58,47 +58,47 @@ export interface BaseApiResponse extends Response {
 }
 
 // Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.responses
-export type ExtractSchemaFromResponseDef<TDef> = TDef extends { schema: infer S } // Simplified: TDef is always an object with a schema
-    ? S extends z.ZodType<any> ? S : never
+export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema: infer S} // Simplified: TDef is always an object with a schema
+    ? S extends z.ZodType<any>
+        ? S
+        : never
     : never;
 
 // Helper to infer data type from a response definition - EXPORT THIS
 export type InferDataFromResponseDef<TDef> = z.infer<ExtractSchemaFromResponseDef<TDef>>;
 
 // Interface for the response methods that will be typed based on ApiRouteConfig['responses']
-interface TypedResponseMethods<TResponses extends Record<number, any>> { // Status code key is number
+interface TypedResponseMethods<TResponses extends Record<number, any>> {
+    // Status code key is number
     typedJson: <
         S extends keyof TResponses, // S is the status code (number)
         // D is the actual data type being passed, constrained by the schema for status code S
-        D extends InferDataFromResponseDef<TResponses[S]>
+        D extends InferDataFromResponseDef<TResponses[S]>,
     >(
         statusCode: S,
-        data: Exact<InferDataFromResponseDef<TResponses[S]>, D>
+        data: Exact<InferDataFromResponseDef<TResponses[S]>, D>,
     ) => void;
 
     serialize: <S extends keyof TResponses>(
         statusCode: S, // S is the status code (number)
-        data: InferDataFromResponseDef<TResponses[S]> // Exact not always needed for serialize, but good for consistency
+        data: InferDataFromResponseDef<TResponses[S]>, // Exact not always needed for serialize, but good for consistency
     ) => void;
 }
 
 export interface ApiRouteConfig {
-    name?: string; 
-    operationId?: string; 
-    summary?: string; 
-    description?: string; 
+    name?: string;
+    operationId?: string;
+    summary?: string;
+    description?: string;
     tags?: string[];
-    manualValidation?: boolean; 
+    manualValidation?: boolean;
     request?: {
         body?: z.ZodType<any>;
         params?: z.ZodType<any>;
         query?: z.ZodType<any>;
         headers?: z.ZodType<any>;
     };
-    responses: Record<
-        number, 
-        { schema: z.ZodType<any>; description?: string }
-    >;
+    responses: Record<number, {schema: z.ZodType<any>; description?: string}>;
 }
 
 export type InferZodType<T extends z.ZodType<any> | undefined> =
@@ -139,14 +139,14 @@ export type WithApiTypeParams<
 };
 
 // Helper type for getting the manual validation status
-export type IsManualValidation<TConfig extends ApiRouteConfig> = 
+export type IsManualValidation<TConfig extends ApiRouteConfig> =
     TConfig['manualValidation'] extends true ? true : false;
 
 export type ApiHandler<
     TConfig extends ApiRouteConfig,
     P extends WithApiTypeParams<TConfig> = WithApiTypeParams<TConfig>,
 > = (
-    req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders'] >,
+    req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
     res: ApiResponse<TConfig>,
     next: (err?: any) => void,
 ) => void | Promise<void>;

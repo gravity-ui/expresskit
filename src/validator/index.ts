@@ -1,16 +1,16 @@
 import {Request as ExpressRequest, Response} from 'express';
-import {z, ZodError} from 'zod/v4'; // Import ZodError
-import {ValidationError, SerializationError} from './errors';
+import {ZodError, z} from 'zod/v4'; // Import ZodError
+import {SerializationError, ValidationError} from './errors';
 import {
     ApiRequest,
     ApiResponse,
     ApiRouteConfig,
     Exact,
-    WithApiTypeParams,
-    IsManualValidation,
     InferDataFromResponseDef,
+    IsManualValidation,
+    WithApiTypeParams,
 } from './types';
-import { AppRouteHandler } from '../types';
+import {AppRouteHandler} from '../types';
 
 export {ValidationError, SerializationError} from './errors';
 export {OpenApiRegistry} from './openapi-registry';
@@ -19,15 +19,30 @@ export * from './types';
 export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;
     type IsManualActual = IsManualValidation<TConfig>;
-    
+
     return function (
         handler: (
-            req: ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>,
+            req: ApiRequest<
+                IsManualActual,
+                Params['TBody'],
+                Params['TParams'],
+                Params['TQuery'],
+                Params['THeaders']
+            >,
             res: ApiResponse<TConfig>,
         ) => Promise<void> | void,
     ) {
-        const finalHandler: AppRouteHandler = async (expressReq: ExpressRequest, expressRes: Response) => {
-            const enhancedReq = expressReq as ApiRequest<IsManualActual, Params['TBody'], Params['TParams'], Params['TQuery'], Params['THeaders']>;
+        const finalHandler: AppRouteHandler = async (
+            expressReq: ExpressRequest,
+            expressRes: Response,
+        ) => {
+            const enhancedReq = expressReq as ApiRequest<
+                IsManualActual,
+                Params['TBody'],
+                Params['TParams'],
+                Params['TQuery'],
+                Params['THeaders']
+            >;
 
             enhancedReq.validate = async () => {
                 const shape: Record<string, z.ZodType<any>> = {};
@@ -66,11 +81,11 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                     throw new ValidationError('Invalid request data', result.error);
                 }
 
-                const validatedData = result.data as { 
-                    body?: Params['TBody'], 
-                    params?: Params['TParams'], 
-                    query?: Params['TQuery'], 
-                    headers?: Params['THeaders'] 
+                const validatedData = result.data as {
+                    body?: Params['TBody'];
+                    params?: Params['TParams'];
+                    query?: Params['TQuery'];
+                    headers?: Params['THeaders'];
                 };
 
                 let body: Params['TBody'] = {} as Params['TBody'];
@@ -99,31 +114,31 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 };
             };
 
-            const enhancedRes = expressRes as ApiResponse<TConfig>; // Cast directly to the new ApiResponse<TConfig>
-            
+            const enhancedRes = expressRes as ApiResponse<TConfig>;
+
             enhancedRes.typedJson = function <
                 S extends keyof TConfig['responses'],
-                D extends InferDataFromResponseDef<TConfig['responses'][S]>
+                D extends InferDataFromResponseDef<TConfig['responses'][S]>,
             >(
                 statusCode: S,
-                data: Exact<InferDataFromResponseDef<TConfig['responses'][S]>, D>
+                data: Exact<InferDataFromResponseDef<TConfig['responses'][S]>, D>,
             ): void {
                 expressRes.status(statusCode as number).json(data);
             };
-            
+
             enhancedRes.serialize = function <S extends keyof TConfig['responses']>(
                 statusCode: S,
-                data: InferDataFromResponseDef<TConfig['responses'][S]> 
+                data: InferDataFromResponseDef<TConfig['responses'][S]>,
             ): void {
-                const responseDef = config.responses[statusCode as number]; 
+                const responseDef = config.responses[statusCode as number];
 
-                const schemaToValidate = responseDef.schema; 
+                const schemaToValidate = responseDef.schema;
                 const result = schemaToValidate.safeParse(data);
-            
+
                 if (!result.success) {
                     throw new SerializationError(
                         `Invalid response data for status code ${String(statusCode)}`,
-                        result.error
+                        result.error,
                     );
                 }
                 expressRes.status(statusCode as number).json(result.data);
@@ -134,12 +149,12 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 if (config.manualValidation !== true) {
                     const validatedData = await enhancedReq.validate();
                     // Assign validated data using type assertions to satisfy the conditional types
-                    (enhancedReq as { body: Params['TBody'] }).body = validatedData.body;
-                    (enhancedReq as { params: Params['TParams'] }).params = validatedData.params;
-                    (enhancedReq as { query: Params['TQuery'] }).query = validatedData.query;
-                    (enhancedReq as { headers: Params['THeaders'] }).headers = validatedData.headers;
+                    (enhancedReq as {body: Params['TBody']}).body = validatedData.body;
+                    (enhancedReq as {params: Params['TParams']}).params = validatedData.params;
+                    (enhancedReq as {query: Params['TQuery']}).query = validatedData.query;
+                    (enhancedReq as {headers: Params['THeaders']}).headers = validatedData.headers;
                 }
-            
+
                 await handler(enhancedReq, enhancedRes);
             } catch (error: any) {
                 if (error instanceof ValidationError) {
@@ -158,14 +173,11 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 } else if (error instanceof SerializationError) {
                     const zodError = error.details as ZodError | undefined;
                     // Log the server-side error
-                    console.error(
-                        'SerializationError: Failed to serialize response.',
-                        {
-                            routeName: config.name,
-                            message: error.message,
-                            issues: zodError?.issues,
-                        }
-                    );
+                    console.error('SerializationError: Failed to serialize response.', {
+                        routeName: config.name,
+                        message: error.message,
+                        issues: zodError?.issues,
+                    });
                     if (!expressRes.headersSent) {
                         expressRes.status(error.statusCode || 500).json({
                             error: 'Internal Server Error',

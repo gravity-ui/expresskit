@@ -18,12 +18,5 @@ export {AuthPolicy} from './types';
 
 export * from './csp';
 
-export {
-    withApi,
-    ValidationError
-} from './validator';
-export type {
-    ApiRequest,
-    ApiResponse,
-    ApiRouteConfig
-} from './validator';
+export {withApi, ValidationError} from './validator';
+export type {ApiRequest, ApiResponse, ApiRouteConfig} from './validator';

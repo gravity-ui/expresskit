@@ -75,7 +75,12 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     return handler;
 }
 
-export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes, openapiRegistry?: OpenApiRegistry) {
+export function setupRoutes(
+    ctx: AppContext,
+    expressApp: Express,
+    routes: AppRoutes,
+    openapiRegistry?: OpenApiRegistry,
+) {
     const appPresets = getAppPresets(ctx.config.expressCspPresets);
 
     Object.entries(routes).forEach(([routeKey, rawRoute]) => {
@@ -182,12 +187,12 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             swaggerUi.serve,
             swaggerUi.setup(null, {
                 swaggerOptions: {
-                    url: '/openapi.json'
-                }
-            })
+                    url: '/openapi.json',
+                },
+            }),
         );
     }
- 
+
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
             Promise.resolve(ctx.config.appFinalErrorHandler?.(error, req, res, next)).catch(next);

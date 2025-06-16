@@ -1,7 +1,7 @@
-import { ObjectSchema } from 'zod/dist/types/v4/core/json-schema';
+import {ObjectSchema} from 'zod/dist/types/v4/core/json-schema';
 import type {OpenApiRegistryConfig} from './types';
-import { ApiRouteConfig } from './types';
-import { z } from 'zod/v4';
+import {ApiRouteConfig} from './types';
+import {z} from 'zod/v4';
 
 interface RegisteredRoute {
     path: string;
@@ -17,54 +17,55 @@ export class OpenApiRegistry {
         this.config = config;
     }
 
-    public registerRoute(route: { path: string; method: string; config: ApiRouteConfig; }): void {
+    registerRoute(route: {path: string; method: string; config: ApiRouteConfig}): void {
         const openApiPath = route.path.replace(/\/:([^/]+)/g, '/{$1}');
         this.routes.push({
             path: openApiPath,
             method: route.method.toLowerCase(),
-            config: route.config
+            config: route.config,
         });
     }
 
     // must return a valid OpenAPI schema object
-    public getOpenApiSchema() {
+    getOpenApiSchema() {
         const openApiSchema = {
             openapi: '3.0.3',
             info: {
                 title: this.config.title || 'API Documentation',
                 version: this.config.version || '1.0.0',
-                description: this.config.description || 'Generated API documentation'
+                description: this.config.description || 'Generated API documentation',
             },
-            servers: this.config.servers || [{ url: 'http://localhost:3030' }],
+            servers: this.config.servers || [{url: 'http://localhost:3030'}],
             paths: {} as Record<string, any>,
             components: {
-                schemas: {} as Record<string, any>
-            }
+                schemas: {} as Record<string, any>,
+            },
         };
 
         // Process each registered route
-        this.routes.forEach(route => {
+        this.routes.forEach((route) => {
             const pathItem = openApiSchema.paths[route.path] || {};
-            
+
             const operation: any = {
                 summary: route.config.summary,
                 description: route.config.description,
                 tags: route.config.tags,
                 parameters: [],
-                responses: {}
+                responses: {},
             };
 
             // Add query parameters
             if (route.config.request?.query) {
                 const querySchema = z.toJSONSchema(route.config.request.query);
-                
+
                 if (querySchema.type === 'object' && querySchema.properties) {
                     Object.entries(querySchema.properties).forEach(([name, schema]) => {
                         operation.parameters.push({
                             name,
                             in: 'query',
-                            required: (querySchema as ObjectSchema).required?.includes(name) || false,
-                            schema
+                            required:
+                                (querySchema as ObjectSchema).required?.includes(name) || false,
+                            schema,
                         });
                     });
                 }
@@ -79,7 +80,7 @@ export class OpenApiRegistry {
                             name,
                             in: 'path',
                             required: true,
-                            schema
+                            schema,
                         });
                     });
                 }
@@ -92,9 +93,9 @@ export class OpenApiRegistry {
                     required: true,
                     content: {
                         'application/json': {
-                            schema: bodySchema
-                        }
-                    }
+                            schema: bodySchema,
+                        },
+                    },
                 };
             }
 
@@ -103,12 +104,13 @@ export class OpenApiRegistry {
                 Object.entries(route.config.responses).forEach(([statusCode, responseDef]) => {
                     const schema = z.toJSONSchema(responseDef.schema);
                     operation.responses[statusCode] = {
-                        description: responseDef.description || this.getResponseDescription(statusCode),
+                        description:
+                            responseDef.description || this.getResponseDescription(statusCode),
                         content: {
                             'application/json': {
-                                schema
-                            }
-                        }
+                                schema,
+                            },
+                        },
                     };
                 });
             } else {
@@ -117,9 +119,9 @@ export class OpenApiRegistry {
                     description: 'Successful response',
                     content: {
                         'application/json': {
-                            schema: { type: 'object' }
-                        }
-                    }
+                            schema: {type: 'object'},
+                        },
+                    },
                 };
             }
 
@@ -140,7 +142,7 @@ export class OpenApiRegistry {
             '403': 'Forbidden',
             '404': 'Not found',
             '422': 'Validation error',
-            '500': 'Internal server error'
+            '500': 'Internal server error',
         };
         return descriptions[statusCode] || 'Response';
     }
