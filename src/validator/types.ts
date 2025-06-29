@@ -57,9 +57,9 @@ export interface BaseApiResponse extends Response {
     // No serialization methods here
 }
 
-// Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.responses
+// Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.response.content
 export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema: infer S} // Simplified: TDef is always an object with a schema
-    ? S extends z.ZodType<any>
+    ? S extends z.ZodType
         ? S
         : never
     : never;
@@ -67,21 +67,21 @@ export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema: infer S} 
 // Helper to infer data type from a response definition - EXPORT THIS
 export type InferDataFromResponseDef<TDef> = z.infer<ExtractSchemaFromResponseDef<TDef>>;
 
-// Interface for the response methods that will be typed based on ApiRouteConfig['responses']
-interface TypedResponseMethods<TResponses extends Record<number, any>> {
+// Interface for the response methods that will be typed based on ApiRouteConfig['response']['content']
+interface TypedResponseMethods<TContent extends Record<number, {schema: z.ZodType}>> {
     // Status code key is number
     typedJson: <
-        S extends keyof TResponses, // S is the status code (number)
+        S extends keyof TContent, // S is the status code (number)
         // D is the actual data type being passed, constrained by the schema for status code S
-        D extends InferDataFromResponseDef<TResponses[S]>,
+        D extends InferDataFromResponseDef<TContent[S]>,
     >(
         statusCode: S,
-        data: Exact<InferDataFromResponseDef<TResponses[S]>, D>,
+        data: Exact<InferDataFromResponseDef<TContent[S]>, D>,
     ) => void;
 
-    serialize: <S extends keyof TResponses>(
+    serialize: <S extends keyof TContent>(
         statusCode: S, // S is the status code (number)
-        data: InferDataFromResponseDef<TResponses[S]>, // Exact not always needed for serialize, but good for consistency
+        data: InferDataFromResponseDef<TContent[S]>, // Exact not always needed for serialize, but good for consistency
     ) => void;
 }
 
@@ -93,36 +93,41 @@ export interface ApiRouteConfig {
     tags?: string[];
     manualValidation?: boolean;
     request?: {
-        body?: z.ZodType<any>;
-        params?: z.ZodType<any>;
-        query?: z.ZodType<any>;
-        headers?: z.ZodType<any>;
+        body?: z.ZodType;
+        params?: z.ZodType;
+        query?: z.ZodType;
+        headers?: z.ZodType;
+        contentType?: string[];
     };
-    responses: Record<number, {schema: z.ZodType<any>; description?: string}>;
+    response: {
+        contentType?: string;
+        content: Record<number, {schema: z.ZodType; description?: string}>;
+    };
 }
 
-export type InferZodType<T extends z.ZodType<any> | undefined> =
-    T extends z.ZodType<any> ? z.infer<T> : unknown;
+export type InferZodType<T extends z.ZodType | undefined> = T extends z.ZodType
+    ? z.infer<T>
+    : unknown;
 
 export type WithApiTypeParams<
     TConfig extends ApiRouteConfig,
-    TBodySchema extends z.ZodType<any> = TConfig['request'] extends {body: infer U}
-        ? U extends z.ZodType<any>
+    TBodySchema extends z.ZodType = TConfig['request'] extends {body: infer U}
+        ? U extends z.ZodType
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
-    TParamsSchema extends z.ZodType<any> = TConfig['request'] extends {params: infer U}
-        ? U extends z.ZodType<any>
+    TParamsSchema extends z.ZodType = TConfig['request'] extends {params: infer U}
+        ? U extends z.ZodType
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
-    TQuerySchema extends z.ZodType<any> = TConfig['request'] extends {query: infer U}
-        ? U extends z.ZodType<any>
+    TQuerySchema extends z.ZodType = TConfig['request'] extends {query: infer U}
+        ? U extends z.ZodType
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
-    THeadersSchema extends z.ZodType<any> = TConfig['request'] extends {headers: infer U}
-        ? U extends z.ZodType<any>
+    THeadersSchema extends z.ZodType = TConfig['request'] extends {headers: infer U}
+        ? U extends z.ZodType
             ? U
             : z.ZodType<unknown>
         : z.ZodType<unknown>,
@@ -148,8 +153,8 @@ export type ApiHandler<
 > = (
     req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
     res: ApiResponse<TConfig>,
-    next: (err?: any) => void,
+    next: (err?: Error) => void,
 ) => void | Promise<void>;
 
 export type ApiResponse<TConfig extends ApiRouteConfig> = BaseApiResponse &
-    TypedResponseMethods<TConfig['responses']>;
+    TypedResponseMethods<TConfig['response']['content']>;

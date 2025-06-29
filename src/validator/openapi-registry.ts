@@ -1,4 +1,3 @@
-import {ObjectSchema} from 'zod/dist/types/v4/core/json-schema';
 import type {OpenApiRegistryConfig} from './types';
 import {ApiRouteConfig} from './types';
 import {z} from 'zod/v4';
@@ -36,9 +35,9 @@ export class OpenApiRegistry {
                 description: this.config.description || 'Generated API documentation',
             },
             servers: this.config.servers || [{url: 'http://localhost:3030'}],
-            paths: {} as Record<string, any>,
+            paths: {} as Record<string, Record<string, unknown>>,
             components: {
-                schemas: {} as Record<string, any>,
+                schemas: {} as Record<string, unknown>,
             },
         };
 
@@ -46,7 +45,7 @@ export class OpenApiRegistry {
         this.routes.forEach((route) => {
             const pathItem = openApiSchema.paths[route.path] || {};
 
-            const operation: any = {
+            const operation: Record<string, unknown> = {
                 summary: route.config.summary,
                 description: route.config.description,
                 tags: route.config.tags,
@@ -60,11 +59,12 @@ export class OpenApiRegistry {
 
                 if (querySchema.type === 'object' && querySchema.properties) {
                     Object.entries(querySchema.properties).forEach(([name, schema]) => {
-                        operation.parameters.push({
+                        (operation.parameters as Record<string, unknown>[]).push({
                             name,
                             in: 'query',
                             required:
-                                (querySchema as ObjectSchema).required?.includes(name) || false,
+                                (querySchema as {required?: string[]}).required?.includes(name) ||
+                                false,
                             schema,
                         });
                     });
@@ -76,7 +76,7 @@ export class OpenApiRegistry {
                 const paramsSchema = z.toJSONSchema(route.config.request.params);
                 if (paramsSchema.type === 'object' && paramsSchema.properties) {
                     Object.entries(paramsSchema.properties).forEach(([name, schema]) => {
-                        operation.parameters.push({
+                        (operation.parameters as Record<string, unknown>[]).push({
                             name,
                             in: 'path',
                             required: true,
@@ -89,33 +89,44 @@ export class OpenApiRegistry {
             // Add request body for methods that support it
             if (['post', 'put', 'patch'].includes(route.method) && route.config.request?.body) {
                 const bodySchema = z.toJSONSchema(route.config.request.body);
+                const contentTypes = route.config.request?.contentType || ['application/json'];
+                const content = contentTypes.reduce(
+                    (acc, type) => {
+                        acc[type] = {
+                            schema: bodySchema,
+                        };
+                        return acc;
+                    },
+                    {} as Record<string, {schema: unknown}>,
+                );
+
                 operation.requestBody = {
                     required: true,
-                    content: {
-                        'application/json': {
-                            schema: bodySchema,
-                        },
-                    },
+                    content,
                 };
             }
 
             // Add responses
-            if (route.config.responses) {
-                Object.entries(route.config.responses).forEach(([statusCode, responseDef]) => {
-                    const schema = z.toJSONSchema(responseDef.schema);
-                    operation.responses[statusCode] = {
-                        description:
-                            responseDef.description || this.getResponseDescription(statusCode),
-                        content: {
-                            'application/json': {
-                                schema,
+            if (route.config.response) {
+                Object.entries(route.config.response.content).forEach(
+                    ([statusCode, responseDef]) => {
+                        const schema = z.toJSONSchema(responseDef.schema);
+                        const contentType =
+                            route.config.response?.contentType || 'application/json';
+                        (operation.responses as Record<string, unknown>)[statusCode] = {
+                            description:
+                                responseDef.description || this.getResponseDescription(statusCode),
+                            content: {
+                                [contentType]: {
+                                    schema,
+                                },
                             },
-                        },
-                    };
-                });
+                        };
+                    },
+                );
             } else {
                 // Default response if none specified
-                operation.responses['200'] = {
+                (operation.responses as Record<string, unknown>)['200'] = {
                     description: 'Successful response',
                     content: {
                         'application/json': {
