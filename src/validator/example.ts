@@ -50,19 +50,21 @@ const GetUserConfig = {
     request: {
         params: z.object({userId: z.uuid({message: 'Invalid user ID format'})}),
     },
-    responses: {
-        200: {
-            schema: UserSchema,
-            description: 'User found successfully.',
-        },
-        404: {
-            schema: ErrorSchema,
-            description: 'User not found.',
-        },
-        400: {
-            // For invalid UUID by Zod
-            schema: ErrorSchema,
-            description: 'Invalid request parameters.',
+    response: {
+        content: {
+            200: {
+                schema: UserSchema,
+                description: 'User found successfully.',
+            },
+            404: {
+                schema: ErrorSchema,
+                description: 'User not found.',
+            },
+            400: {
+                // For invalid UUID by Zod
+                schema: ErrorSchema,
+                description: 'Invalid request parameters.',
+            },
         },
     },
 } satisfies ApiRouteConfig;
@@ -95,19 +97,21 @@ const CreateItemConfig = {
             quantity: z.number().int().positive('Quantity must be a positive integer'),
         }),
     },
-    responses: {
-        201: {
-            schema: ItemSchema,
-            description: 'Item created successfully.',
-        },
-        400: {
-            schema: ErrorSchema,
-            description: 'Invalid item data provided.',
-        },
-        422: {
-            // Example for a business logic validation error
-            schema: ErrorSchema,
-            description: 'Item could not be processed due to business rules.',
+    response: {
+        content: {
+            201: {
+                schema: ItemSchema,
+                description: 'Item created successfully.',
+            },
+            400: {
+                schema: ErrorSchema,
+                description: 'Invalid item data provided.',
+            },
+            422: {
+                // Example for a business logic validation error
+                schema: ErrorSchema,
+                description: 'Item could not be processed due to business rules.',
+            },
         },
     },
 } satisfies ApiRouteConfig;
@@ -147,14 +151,16 @@ const UpdateUserEmailConfig = {
                 path: ['confirmEmail'], // Path of the error
             }),
     },
-    responses: {
-        200: {
-            schema: SuccessMessageSchema,
-            description: 'Email updated successfully.',
-        },
-        400: {
-            schema: ErrorSchema,
-            description: 'Validation failed or emails did not match.',
+    response: {
+        content: {
+            200: {
+                schema: SuccessMessageSchema,
+                description: 'Email updated successfully.',
+            },
+            400: {
+                schema: ErrorSchema,
+                description: 'Validation failed or emails did not match.',
+            },
         },
     },
 } satisfies ApiRouteConfig;
@@ -178,18 +184,20 @@ const DeleteItemConfig = {
     request: {
         params: z.object({itemId: z.uuid()}),
     },
-    responses: {
-        204: {
-            // For 204 No Content, often no schema is needed, or an empty schema.
-            // Zod doesn't have a direct equivalent for an empty schema that translates well to OpenAPI without content.
-            // The OpenAPI generator should ideally omit the content field for 204 if the schema is z.undefined() or z.void().
-            // Using z.undefined() to signify no actual data/body.
-            schema: z.undefined(),
-            description: 'Item deleted successfully, no content returned.',
-        },
-        404: {
-            schema: ErrorSchema,
-            description: 'Item not found.',
+    response: {
+        content: {
+            204: {
+                // For 204 No Content, often no schema is needed, or an empty schema.
+                // Zod doesn't have a direct equivalent for an empty schema that translates well to OpenAPI without content.
+                // The OpenAPI generator should ideally omit the content field for 204 if the schema is z.undefined() or z.void().
+                // Using z.undefined() to signify no actual data/body.
+                schema: z.undefined(),
+                description: 'Item deleted successfully, no content returned.',
+            },
+            404: {
+                schema: ErrorSchema,
+                description: 'Item not found.',
+            },
         },
     },
 } satisfies ApiRouteConfig;
@@ -216,14 +224,16 @@ const GetItemsConfig = {
             includeDetails: z.stringbool().optional().default(false),
         }),
     },
-    responses: {
-        200: {
-            schema: z.array(ExtendedItemSchema),
-            description: 'A list of items retrieved successfully.',
-        },
-        400: {
-            schema: ErrorSchema,
-            description: 'Invalid query parameters.',
+    response: {
+        content: {
+            200: {
+                schema: z.array(ExtendedItemSchema),
+                description: 'A list of items retrieved successfully.',
+            },
+            400: {
+                schema: ErrorSchema,
+                description: 'Invalid query parameters.',
+            },
         },
     },
 } satisfies ApiRouteConfig;

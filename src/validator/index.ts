@@ -45,8 +45,8 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             >;
 
             enhancedReq.validate = async () => {
-                const shape: Record<string, z.ZodType<any>> = {};
-                const dataToValidate: Record<string, any> = {};
+                const shape: Record<string, z.ZodType> = {};
+                const dataToValidate: Record<string, unknown> = {};
 
                 if (config.request?.body) {
                     shape.body = config.request.body;
@@ -117,20 +117,20 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             const enhancedRes = expressRes as ApiResponse<TConfig>;
 
             enhancedRes.typedJson = function <
-                S extends keyof TConfig['responses'],
-                D extends InferDataFromResponseDef<TConfig['responses'][S]>,
+                S extends keyof TConfig['response']['content'],
+                D extends InferDataFromResponseDef<TConfig['response']['content'][S]>,
             >(
                 statusCode: S,
-                data: Exact<InferDataFromResponseDef<TConfig['responses'][S]>, D>,
+                data: Exact<InferDataFromResponseDef<TConfig['response']['content'][S]>, D>,
             ): void {
                 expressRes.status(statusCode as number).json(data);
             };
 
-            enhancedRes.serialize = function <S extends keyof TConfig['responses']>(
+            enhancedRes.serialize = function <S extends keyof TConfig['response']['content']>(
                 statusCode: S,
-                data: InferDataFromResponseDef<TConfig['responses'][S]>,
+                data: InferDataFromResponseDef<TConfig['response']['content'][S]>,
             ): void {
-                const responseDef = config.responses[statusCode as number];
+                const responseDef = config.response.content[statusCode as number];
 
                 const schemaToValidate = responseDef.schema;
                 const result = schemaToValidate.safeParse(data);
@@ -145,6 +145,20 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             };
 
             try {
+                if (config.request?.body) {
+                    const contentType = expressReq.headers['content-type'];
+                    const allowedContentTypes = config.request?.contentType ?? ['application/json'];
+
+                    if (
+                        !contentType ||
+                        !allowedContentTypes.some((type) => contentType.includes(type))
+                    ) {
+                        throw new ValidationError(
+                            `Unsupported content-type. Allowed: ${allowedContentTypes.join(', ')}`,
+                        );
+                    }
+                }
+
                 // Automatically validate request parts unless manual validation is specified
                 if (config.manualValidation !== true) {
                     const validatedData = await enhancedReq.validate();
@@ -156,7 +170,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 }
 
                 await handler(enhancedReq, enhancedRes);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (error instanceof ValidationError) {
                     if (!expressRes.headersSent) {
                         const zodError = error.details as ZodError | undefined;
@@ -171,13 +185,6 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                         });
                     }
                 } else if (error instanceof SerializationError) {
-                    const zodError = error.details as ZodError | undefined;
-                    // Log the server-side error
-                    console.error('SerializationError: Failed to serialize response.', {
-                        routeName: config.name,
-                        message: error.message,
-                        issues: zodError?.issues,
-                    });
                     if (!expressRes.headersSent) {
                         expressRes.status(error.statusCode || 500).json({
                             error: 'Internal Server Error',

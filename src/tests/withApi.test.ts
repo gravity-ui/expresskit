@@ -30,9 +30,11 @@ const validateSuccessApiConfig = {
             value: z.number(),
         }),
     },
-    responses: {
-        201: {schema: SuccessResponseBodySchema, description: 'Successfully created.'},
-        400: {schema: ErrorSchema, description: 'Invalid request body.'},
+    response: {
+        content: {
+            201: {schema: SuccessResponseBodySchema, description: 'Successfully created.'},
+            400: {schema: ErrorSchema, description: 'Invalid request body.'},
+        },
     },
 };
 const validateSuccessController = withApi(validateSuccessApiConfig)(async (req, res) => {
@@ -53,13 +55,15 @@ const rejectInvalidApiConfig = {
             value: z.number(),
         }),
     },
-    responses: {
-        // Must define expected responses, even if error is primary test
-        200: {
-            schema: z.object({name: z.string(), value: z.number()}),
-            description: 'Successful response (not expected in this test).',
+    response: {
+        content: {
+            // Must define expected responses, even if error is primary test
+            200: {
+                schema: z.object({name: z.string(), value: z.number()}),
+                description: 'Successful response (not expected in this test).',
+            },
+            400: {schema: ErrorSchema, description: 'Invalid request body.'},
         },
-        400: {schema: ErrorSchema, description: 'Invalid request body.'},
     },
 };
 const rejectInvalidController = withApi(rejectInvalidApiConfig)(async (req, res) => {
@@ -69,9 +73,11 @@ const rejectInvalidController = withApi(rejectInvalidApiConfig)(async (req, res)
 
 const asyncOperationApiConfig = {
     name: 'AsyncOperationAPI',
-    responses: {
-        200: {schema: AsyncResponseBodySchema, description: 'Successful async response.'},
-        500: {schema: ErrorSchema, description: 'Internal server error.'},
+    response: {
+        content: {
+            200: {schema: AsyncResponseBodySchema, description: 'Successful async response.'},
+            500: {schema: ErrorSchema, description: 'Internal server error.'},
+        },
     },
 };
 const asyncOperationController = withApi(asyncOperationApiConfig)(async (_req, res) => {
@@ -91,9 +97,11 @@ const ManualValidationApiConfig = {
     request: {
         body: ManualValidationBodySchema,
     },
-    responses: {
-        200: {schema: ManualValidationBodySchema, description: 'Manual validation successful.'},
-        400: {schema: ErrorSchema, description: 'Invalid input for manual validation.'},
+    response: {
+        content: {
+            200: {schema: ManualValidationBodySchema, description: 'Manual validation successful.'},
+            400: {schema: ErrorSchema, description: 'Invalid input for manual validation.'},
+        },
     },
 };
 const manualValidationController = withApi(ManualValidationApiConfig)(async (req, res) => {
@@ -117,8 +125,10 @@ const TypedJsonTestSchema = z
 
 const TypedJsonApiConfig = {
     name: 'TypedJsonAPI',
-    responses: {
-        200: {schema: TypedJsonTestSchema, description: 'TypedJSON test successful.'},
+    response: {
+        content: {
+            200: {schema: TypedJsonTestSchema, description: 'TypedJSON test successful.'},
+        },
     },
 };
 const typedJsonController = withApi(TypedJsonApiConfig)(async (_req, res) => {
@@ -139,8 +149,10 @@ const SerializeTestSchema = z.object({
 
 const SerializeApiConfig = {
     name: 'SerializeAPI',
-    responses: {
-        200: {schema: SerializeTestSchema, description: 'Serialize test successful.'},
+    response: {
+        content: {
+            200: {schema: SerializeTestSchema, description: 'Serialize test successful.'},
+        },
     },
 };
 
@@ -177,8 +189,13 @@ const SerializeNestedTestSchema = z.object({
 
 const SerializeNestedApiConfig = {
     name: 'SerializeNestedAPI',
-    responses: {
-        200: {schema: SerializeNestedTestSchema, description: 'Serialize nested test successful.'},
+    response: {
+        content: {
+            200: {
+                schema: SerializeNestedTestSchema,
+                description: 'Serialize nested test successful.',
+            },
+        },
     },
 };
 
@@ -235,12 +252,14 @@ const ComprehensiveValidationApiConfig = {
             'x-trace-id': z.string().uuid({message: 'X-Trace-ID header must be a valid UUID'}),
         }),
     },
-    responses: {
-        200: {
-            schema: ComprehensiveValidationSchema,
-            description: 'Comprehensive validation successful.',
+    response: {
+        content: {
+            200: {
+                schema: ComprehensiveValidationSchema,
+                description: 'Comprehensive validation successful.',
+            },
+            400: {schema: ErrorSchema, description: 'Invalid input for params, query, or headers.'},
         },
-        400: {schema: ErrorSchema, description: 'Invalid input for params, query, or headers.'},
     },
 };
 
@@ -286,6 +305,23 @@ describe('withApi', () => {
             'GET /serialize-test': {handler: serializeController},
             'GET /serialize-nested-test': {handler: serializeNestedController},
             'POST /error-structure-test': {handler: rejectInvalidController},
+            'POST /custom-content-type': {
+                handler: withApi({
+                    request: {
+                        contentType: ['application/x-www-form-urlencoded'],
+                        body: z.object({name: z.string()}),
+                    },
+                    response: {
+                        content: {
+                            200: {
+                                schema: z.object({name: z.string()}),
+                            },
+                        },
+                    },
+                })(async (req, res) => {
+                    res.serialize(200, req.body);
+                }),
+            },
         };
 
         const expressKit = new ExpressKit(nodekit, routes);
@@ -465,6 +501,30 @@ describe('withApi', () => {
             // Check for the presence of the specific error path, regardless of order
             expect(response.body.issues).toEqual(
                 expect.arrayContaining([expect.objectContaining({path: ['body', 'value']})]),
+            );
+        });
+    });
+
+    describe('Custom Content-Type Handling', () => {
+        it('should allow custom content-type', async () => {
+            const response = await request(app)
+                .post('/custom-content-type')
+                .set('Content-Type', 'application/x-www-form-urlencoded')
+                .send('name=test');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({name: 'test'});
+        });
+
+        it('should reject unsupported content-type', async () => {
+            const response = await request(app)
+                .post('/custom-content-type')
+                .set('Content-Type', 'application/json')
+                .send({name: 'test'});
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe(
+                'Unsupported content-type. Allowed: application/x-www-form-urlencoded',
             );
         });
     });

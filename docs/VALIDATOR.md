@@ -9,7 +9,7 @@ Here's a common example of using `withApi` for automatic request validation and 
 ```typescript
 import {ExpressKit, withApi, AppRoutes, ApiRouteConfig} from '@gravity-ui/expresskit'; // Assuming AppRoutes is exported
 import {NodeKit} from '@gravity-ui/nodekit';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 
 // 1. Define your Zod schemas
 const TaskSchema = z.object({
@@ -41,16 +41,18 @@ const CreateTaskConfig = {
     // query: z.object({ includeAuthor: z.string() }), // Example for query params
   },
   // Define responses for different HTTP status codes
-  responses: {
-    201: {
-      schema: TaskSchema,
-      description: 'Task created successfully.',
+  response: {
+    content: {
+      201: {
+        schema: TaskSchema,
+        description: 'Task created successfully.',
+      },
+      400: {
+        schema: ErrorSchema,
+        description: 'Invalid input data.',
+      },
+      // You can add more status codes like 500, etc.
     },
-    400: {
-      schema: ErrorSchema,
-      description: 'Invalid input data.',
-    },
-    // You can add more status codes like 500, etc.
   },
 } satisfies ApiRouteConfig;
 
@@ -69,7 +71,7 @@ const createTaskHandler = withApi(CreateTaskConfig)(async (req, res) => {
     // someInternalField: 'secret' // This would be stripped by res.serialize if not in TaskSchema for status 201
   };
 
-  // Use res.serialize() to validate and send the response according to CreateTaskConfig.responses[201]
+  // Use res.serialize() to validate and send the response according to CreateTaskConfig.response.content[201]
   // If newTask doesn't match TaskSchema for status 201, a ResponseValidationError is thrown.
   res.serialize(201, newTask);
   // Or, if you were certain of the type and wanted to send a 400 error:
@@ -92,7 +94,7 @@ const app = new ExpressKit(nodekit, routes);
 - Request body is automatically validated against `CreateTaskConfig.request.body`.
 - If request validation fails, a `ValidationError` is thrown, and the handler is not executed (ExpressKit's error middleware typically sends a 400 response).
 - Inside the handler, `req.body` is typed and contains the validated data.
-- `res.serialize(statusCode, data)` validates `data` against the schema defined in `CreateTaskConfig.responses[statusCode].schema`.
+- `res.serialize(statusCode, data)` validates `data` against the schema defined in `CreateTaskConfig.response.content[statusCode].schema`.
 - If response validation for `res.serialize` fails, a `ResponseValidationError` is thrown (ExpressKit's error middleware typically sends a 500 response).
 - `res.typedJson(statusCode, data)` sends data type-checked at compile time against the schema for `statusCode`.
 
@@ -115,28 +117,33 @@ The primary tool is the `withApi` higher-order function, which wraps Express rou
     tags?: string[]; // Tags for grouping (e.g., for OpenAPI)
     manualValidation?: boolean; // Default: false. If true, call req.validate() manually.
     request?: {
+      contentType?: string | string[]; // Allowed request content types. Default: 'application/json'
       body?: z.ZodType<any>; // Schema for req.body
       params?: z.ZodType<any>; // Schema for req.params
       query?: z.ZodType<any>; // Schema for req.query
       headers?: z.ZodType<any>; // Schema for req.headers
     };
     // Define response schemas for various HTTP status codes. This field is MANDATORY.
-    responses: Record<
-      number,
-      {
-        // Changed from responses? to responses (mandatory)
-        schema: z.ZodType<any>; // Zod schema for this status code's response body
-        description?: string; // Description for this response (e.g., for OpenAPI)
-      }
-    >;
+    response: {
+      contentType?: string; // The response content type. Default: 'application/json'
+      content: Record<
+        number,
+        {
+          schema: z.ZodType<any>; // Zod schema for this status code's response body
+          description?: string; // Description for this response (e.g., for OpenAPI)
+        }
+      >;
+    };
   }
   ```
 
   Key properties:
 
   - `manualValidation`: Set to `true` to disable automatic request validation.
-  - `request`: Define Zod schemas for `body`, `params`, `query`, `headers`.
-  - `responses`: (Mandatory) A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`. This is used by `res.serialize()` and `res.typedJson()`, and for generating OpenAPI documentation.
+  - `request`: Define Zod schemas for `body`, `params`, `query`, `headers`, and specify allowed `contentType`.
+  - `response`: (Mandatory) An object containing:
+    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`. This is used by `res.serialize()` and `res.typedJson()`, and for generating OpenAPI documentation.
+    - `contentType`: An optional string to set the `Content-Type` header for all responses. Defaults to `application/json`.
 
 - **`handler(req, res)`**: Your Express route handler, receiving enhanced `req` and `res` objects.
 
@@ -152,24 +159,24 @@ The `req` object in your handler is enhanced:
 
 ### Enhanced Response (`ApiResponse`)
 
-The `res` object in your handler is enhanced with the following methods (as `ApiRouteConfig.responses` is mandatory and defines schemas for status codes):
+The `res` object in your handler is enhanced with the following methods (as `ApiRouteConfig.response` is mandatory and defines schemas for status codes):
 
 - **`res.typedJson(statusCode, data)`**:
 
   - Sends a JSON response with the given `statusCode`.
-  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode` in `ApiRouteConfig.responses`. This helps catch type mismatches during coding.
+  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode` in `ApiRouteConfig.response.content`. This helps catch type mismatches during coding.
   - It **does not perform runtime validation** or data transformation (like stripping extra fields not defined in the schema). You are responsible for ensuring the data structure is correct if you bypass `res.serialize()`.
   - Useful if you are certain about the data's structure for a specific status code and want to skip the overhead of runtime validation/serialization.
 
 - **`res.serialize(statusCode, data)`**:
   - Sends a JSON response with the given `statusCode`.
-  - **Performs runtime validation** of `data` against the schema associated with `statusCode` in `ApiRouteConfig.responses`.
+  - **Performs runtime validation** of `data` against the schema associated with `statusCode` in `ApiRouteConfig.response.content`.
   - **Transforms data** according to that Zod schema. This includes stripping properties not defined in the schema, applying default values, or executing Zod `transform` functions if present.
   - Throws a `ResponseValidationError` if validation fails, preventing invalid data from being sent.
   - Sends the validated and potentially transformed data as a JSON response.
   - This is the **recommended method** to ensure strict adherence to the API contract and data integrity for each status code.
 
-Since `ApiRouteConfig.responses` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
+Since `ApiRouteConfig.response` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
 
 ### Error Handling
 
