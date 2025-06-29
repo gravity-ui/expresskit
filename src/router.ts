@@ -178,19 +178,9 @@ export function setupRoutes(
     });
 
     if (ctx.config.openApiRegistry?.enabled && openapiRegistry) {
-        expressApp.get('/openapi.json', (_req, res) => {
-            res.setHeader('Content-Type', 'application/json');
-            res.send(openapiRegistry.getOpenApiSchema());
-        });
-        expressApp.use(
-            '/docs',
-            swaggerUi.serve,
-            swaggerUi.setup(null, {
-                swaggerOptions: {
-                    url: '/openapi.json',
-                },
-            }),
-        );
+        const openApiSchema = openapiRegistry.getOpenApiSchema();
+        const docsPath = ctx.config.openApiRegistry.path || '/docs';
+        expressApp.use(docsPath, swaggerUi.serve, swaggerUi.setup(openApiSchema));
     }
 
     if (ctx.config.appFinalErrorHandler) {
