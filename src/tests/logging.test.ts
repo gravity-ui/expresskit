@@ -1,6 +1,6 @@
 import {ExpressKit, Request, Response} from '..';
 import {DEFAULT_REQUEST_ID_HEADER} from '../constants';
-import {NodeKit} from '@gravity-ui/nodekit';
+import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import request from 'supertest';
 
 const genRandomId = (length = 16) => {
@@ -12,7 +12,7 @@ const USER_AGENT_HEADER = 'user-agent';
 const UBER_TRACE_ID_KEY = 'uber-trace-id';
 const X_TRACE_ID_KEY = 'x-trace-id';
 
-const setupApp = () => {
+const setupApp = ({config}: {config?: AppConfig} = {}) => {
     const logger = {
         write: jest.fn(),
     };
@@ -22,6 +22,7 @@ const setupApp = () => {
             appLoggingDestination: logger,
             appName: APP_NAME,
             appTracingEnabled: true,
+            ...config,
         },
     });
     const routes = {
@@ -113,6 +114,64 @@ describe('log system', () => {
         // check request log
         expect(log).toMatchObject({
             msg: `[Express GET] Request started [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+                headers: {
+                    [DEFAULT_REQUEST_ID_HEADER]: requestId,
+                },
+                remoteAddress: expect.any(String),
+                remotePort: expect.any(Number),
+            },
+        });
+    });
+
+    it('log message should not contain req id if appLoggingOmitIdInMessages is specified', async () => {
+        const {app, logger} = setupApp({config: {appLoggingOmitIdInMessages: true}});
+
+        const agent = request.agent(app.express);
+
+        const requestId = Math.random().toString();
+        const userAgent = 'user-agent-' + Math.random().toString();
+
+        await agent
+            .get('/get')
+            .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+            .set(USER_AGENT_HEADER, userAgent);
+
+        // last log with response
+        let log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // check response log
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request completed`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+            },
+            res: {
+                statusCode: '200',
+                responseTime: expect.any(Number),
+                headers: {
+                    [DEFAULT_REQUEST_ID_HEADER]: requestId,
+                },
+            },
+        });
+
+        // first log with request
+        log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // check request log
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request started`,
             level: 30,
             name: APP_NAME,
             time: expect.any(Number),

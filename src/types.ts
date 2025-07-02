@@ -67,6 +67,8 @@ declare module '@gravity-ui/nodekit' {
 
         appTelemetryChEnableSelfStats?: boolean;
 
+        appLoggingOmitIdInMessages?: boolean;
+
         expressCspEnable?: boolean;
         expressCspPresets?:
             | CSPPreset

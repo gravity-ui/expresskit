@@ -26,7 +26,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
 
             req.originalContext = req.ctx = ctx.create(`Express ${req.method}`, {
                 parentSpanContext,
-                loggerPostfix: `[${requestId}]`,
+                loggerPostfix: ctx.config.appLoggingOmitIdInMessages ? '' : `[${requestId}]`,
                 spanKind: 1, // SERVER
             });
             req.ctx.set(REQUEST_ID_PARAM_NAME, requestId);
