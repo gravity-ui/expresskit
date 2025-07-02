@@ -1,6 +1,6 @@
 {
   "name": "@gravity-ui/expresskit",
-  "version": "2.1.0",
+  "version": "2.4.0",
   "description": "Express.js wrapper for NodeKit-based apps",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
     "@commitlint/cli": "^17.7.1",
     "@commitlint/config-conventional": "^17.7.0",
     "@gravity-ui/eslint-config": "^3.2.0",
-    "@gravity-ui/nodekit": "^2.0.0",
+    "@gravity-ui/nodekit": "^2.4.1",
     "@gravity-ui/prettier-config": "^1.1.0",
     "@gravity-ui/tsconfig": "^1.0.0",
     "@types/accept-language-parser": "^1.5.6",
