@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.4.0](https://github.com/gravity-ui/expresskit/compare/v2.3.0...v2.4.0) (2025-05-21)
+
+
+### Features
+
+* add spanId to all logs, add tests for traceId and spanId check ([#69](https://github.com/gravity-ui/expresskit/issues/69)) ([cbc2644](https://github.com/gravity-ui/expresskit/commit/cbc2644ed3e32a5338dbb1098bcab78025f2e658))
+
+## [2.3.0](https://github.com/gravity-ui/expresskit/compare/v2.2.0...v2.3.0) (2025-04-04)
+
+
+### Features
+
+* add traceId to the self stats ([#68](https://github.com/gravity-ui/expresskit/issues/68)) ([55bcb41](https://github.com/gravity-ui/expresskit/commit/55bcb41423fc60ea6b29bfc51b9b20f233c59445))
+* mark `req.id` as deprecated ([#65](https://github.com/gravity-ui/expresskit/issues/65)) ([8d75e09](https://github.com/gravity-ui/expresskit/commit/8d75e09ec2e178ee50edc9fa1bd38214818d6fa6))
+
 ## [2.2.0](https://github.com/gravity-ui/expresskit/compare/v2.1.0...v2.2.0) (2024-12-03)
 
 
