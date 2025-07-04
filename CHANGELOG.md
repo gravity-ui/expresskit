@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/gravity-ui/expresskit/compare/v2.4.0...v2.5.0) (2025-07-04)
+
+
+### Features
+
+* add an option for omitting req id in log message ([#73](https://github.com/gravity-ui/expresskit/issues/73)) ([ae57255](https://github.com/gravity-ui/expresskit/commit/ae57255ebdae9873820c8105c48189c2973a4d76))
+
+
+### Bug Fixes
+
+* update CODEOWNERS with correct syntax ([#75](https://github.com/gravity-ui/expresskit/issues/75)) ([289710f](https://github.com/gravity-ui/expresskit/commit/289710fb8e032c590651bcfddc63cc04c4a661e0))
+
 ## [2.4.0](https://github.com/gravity-ui/expresskit/compare/v2.3.0...v2.4.0) (2025-05-21)
 
 
