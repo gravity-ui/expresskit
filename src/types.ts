@@ -12,6 +12,7 @@ import type {
 import type {CSPPreset} from './csp';
 import type {getDefaultPresets} from './csp/default-presets';
 import type {CSPMiddlewareParams} from './csp/middleware';
+import type {ApiRouteConfig, OpenApiRegistryConfig} from './validator';
 
 declare global {
     // eslint-disable-next-line
@@ -82,6 +83,8 @@ declare module '@gravity-ui/nodekit' {
         appLangQueryParamName?: string;
         appLangByTld?: Record<string, string | undefined>;
         appGetLangByHostname?: (hostname: string) => string | undefined;
+
+        openApiRegistry?: OpenApiRegistryConfig;
     }
 }
 
@@ -142,6 +145,7 @@ export interface AppRouteHandler {
         req: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
         res: Response<any, Record<string, any>>,
     ): void | Promise<void>;
+    apiConfig?: ApiRouteConfig;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
