@@ -20,6 +20,23 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;
     type IsManualActual = IsManualValidation<TConfig>;
 
+    const requestShape: Record<string, z.ZodType> = {};
+    if (config.request?.body) {
+        requestShape.body = config.request.body;
+    }
+    if (config.request?.params) {
+        requestShape.params = config.request.params;
+    }
+    if (config.request?.query) {
+        requestShape.query = config.request.query;
+    }
+    if (config.request?.headers) {
+        requestShape.headers = config.request.headers;
+    }
+
+    const combinedRequestSchema =
+        Object.keys(requestShape).length > 0 ? z.object(requestShape) : null;
+
     return function (
         handler: (
             req: ApiRequest<
@@ -45,27 +62,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
             >;
 
             enhancedReq.validate = async () => {
-                const shape: Record<string, z.ZodType> = {};
-                const dataToValidate: Record<string, unknown> = {};
-
-                if (config.request?.body) {
-                    shape.body = config.request.body;
-                    dataToValidate.body = expressReq.body;
-                }
-                if (config.request?.params) {
-                    shape.params = config.request.params;
-                    dataToValidate.params = expressReq.params;
-                }
-                if (config.request?.query) {
-                    shape.query = config.request.query;
-                    dataToValidate.query = expressReq.query;
-                }
-                if (config.request?.headers) {
-                    shape.headers = config.request.headers;
-                    dataToValidate.headers = expressReq.headers;
-                }
-
-                if (Object.keys(shape).length === 0) {
+                if (!combinedRequestSchema) {
                     return {
                         body: {} as Params['TBody'],
                         params: {} as Params['TParams'],
@@ -74,8 +71,14 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                     };
                 }
 
-                const combinedSchema = z.object(shape);
-                const result = await combinedSchema.safeParseAsync(dataToValidate);
+                const dataToValidate = {
+                    body: expressReq.body,
+                    params: expressReq.params,
+                    query: expressReq.query,
+                    headers: expressReq.headers,
+                };
+
+                const result = await combinedRequestSchema.safeParseAsync(dataToValidate);
 
                 if (!result.success) {
                     throw new ValidationError('Invalid request data', result.error);
