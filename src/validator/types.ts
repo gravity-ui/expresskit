@@ -33,7 +33,7 @@ export type Exact<TExpected, TProvided extends TExpected> =
               >]: `Error: Unexpected property '${Extract<K, string>}'`;
           };
 
-export interface ApiRequest<
+export interface ContractRequest<
     IsManual extends boolean,
     TBody = unknown,
     TParams = unknown,
@@ -53,7 +53,7 @@ export interface ApiRequest<
     }>;
 }
 
-export interface BaseApiResponse extends Response {
+export interface BaseContractResponse extends Response {
     // No serialization methods here
 }
 
@@ -70,7 +70,7 @@ export type InferDataFromResponseDef<TDef> = z.infer<ExtractSchemaFromResponseDe
 // Interface for the response methods that will be typed based on ApiRouteConfig['response']['content']
 interface TypedResponseMethods<TContent extends Record<number, {schema: z.ZodType}>> {
     // Status code key is number
-    typedJson: <
+    sendTyped: <
         S extends keyof TContent, // S is the status code (number)
         // D is the actual data type being passed, constrained by the schema for status code S
         D extends InferDataFromResponseDef<TContent[S]>,
@@ -79,13 +79,13 @@ interface TypedResponseMethods<TContent extends Record<number, {schema: z.ZodTyp
         data: Exact<InferDataFromResponseDef<TContent[S]>, D>,
     ) => void;
 
-    serialize: <S extends keyof TContent>(
+    sendValidated: <S extends keyof TContent>(
         statusCode: S, // S is the status code (number)
         data: InferDataFromResponseDef<TContent[S]>, // Exact not always needed for serialize, but good for consistency
     ) => void;
 }
 
-export interface ApiRouteConfig {
+export interface RouteContract {
     name?: string;
     operationId?: string;
     summary?: string;
@@ -110,7 +110,7 @@ export type InferZodType<T extends z.ZodType | undefined> = T extends z.ZodType
     : unknown;
 
 export type WithApiTypeParams<
-    TConfig extends ApiRouteConfig,
+    TConfig extends RouteContract,
     TBodySchema extends z.ZodType = TConfig['request'] extends {body: infer U}
         ? U extends z.ZodType
             ? U
@@ -144,17 +144,17 @@ export type WithApiTypeParams<
 };
 
 // Helper type for getting the manual validation status
-export type IsManualValidation<TConfig extends ApiRouteConfig> =
+export type IsManualValidation<TConfig extends RouteContract> =
     TConfig['manualValidation'] extends true ? true : false;
 
 export type ApiHandler<
-    TConfig extends ApiRouteConfig,
+    TConfig extends RouteContract,
     P extends WithApiTypeParams<TConfig> = WithApiTypeParams<TConfig>,
 > = (
-    req: ApiRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
-    res: ApiResponse<TConfig>,
+    req: ContractRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
+    res: ContractResponse<TConfig>,
     next: (err?: Error) => void,
 ) => void | Promise<void>;
 
-export type ApiResponse<TConfig extends ApiRouteConfig> = BaseApiResponse &
+export type ContractResponse<TConfig extends RouteContract> = BaseContractResponse &
     TypedResponseMethods<TConfig['response']['content']>;

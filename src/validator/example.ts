@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import {z} from 'zod/v4';
-import {ApiRouteConfig, AppRoutes, withApi} from '../index'; // Adjust path based on actual export structure
+import {AppRoutes, RouteContract, withContract} from '../index'; // Adjust path based on actual export structure
 import {ExpressKit} from '../expresskit'; // Adjust path
 import {NodeKit} from '@gravity-ui/nodekit'; // Assuming this is a peer dependency or similar
 import crypto from 'crypto';
@@ -67,14 +67,14 @@ const GetUserConfig = {
             },
         },
     },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-const getUserHandler = withApi(GetUserConfig)(async (req, res) => {
+const getUserHandler = withContract(GetUserConfig)(async (req, res) => {
     const {userId} = req.params; // Typed and validated
 
     // Simulate database lookup
     if (userId === '00000000-0000-0000-0000-000000000000') {
-        res.serialize(404, {error: 'User not found', code: 'USER_NOT_FOUND'});
+        res.sendValidated(404, {error: 'User not found', code: 'USER_NOT_FOUND'});
     } else {
         const user = {
             id: userId,
@@ -82,7 +82,7 @@ const getUserHandler = withApi(GetUserConfig)(async (req, res) => {
             email: 'john.doe@example.com',
             internalOnly: 'secret', // This would be stripped by serialize
         };
-        res.serialize(200, user);
+        res.sendValidated(200, user);
     }
 });
 
@@ -114,14 +114,14 @@ const CreateItemConfig = {
             },
         },
     },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-const createItemHandler = withApi(CreateItemConfig)(async (req, res) => {
+const createItemHandler = withContract(CreateItemConfig)(async (req, res) => {
     const {itemName, quantity} = req.body; // Typed and validated
 
     // Simulate business logic
     if (itemName === 'forbidden_item') {
-        res.typedJson(422, {error: 'This item name is not allowed.', code: 'ITEM_FORBIDDEN'});
+        res.sendTyped(422, {error: 'This item name is not allowed.', code: 'ITEM_FORBIDDEN'});
         return;
     }
 
@@ -130,7 +130,7 @@ const createItemHandler = withApi(CreateItemConfig)(async (req, res) => {
         itemName,
         quantity,
     };
-    res.serialize(201, newItem);
+    res.sendValidated(201, newItem);
 });
 
 // --- Example 3: Update User Email (Manual Validation Example) ---
@@ -163,14 +163,14 @@ const UpdateUserEmailConfig = {
             },
         },
     },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-const updateUserEmailHandler = withApi(UpdateUserEmailConfig)(async (req, res) => {
+const updateUserEmailHandler = withContract(UpdateUserEmailConfig)(async (req, res) => {
     // Manually trigger validation
     const {params, body} = await req.validate();
     // params.userId and body.email are now validated and typed
 
-    res.typedJson(200, {
+    res.sendTyped(200, {
         message: 'Email updated successfully',
         details: `User ${params.userId} email changed to ${body.email}`,
     });
@@ -200,9 +200,9 @@ const DeleteItemConfig = {
             },
         },
     },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-const deleteItemHandler = withApi(DeleteItemConfig)(async (req, res) => {
+const deleteItemHandler = withContract(DeleteItemConfig)(async (req, res) => {
     const {itemId} = req.params;
     // Simulate deletion
     console.log(`Deleting item ${itemId}`);
@@ -210,7 +210,7 @@ const deleteItemHandler = withApi(DeleteItemConfig)(async (req, res) => {
     // res.status(204).send(); or res.status(204).end(); are common.
     // Using typedJson with an empty object or undefined if schema allows.
     // If schema is z.undefined(), sending undefined is correct.
-    res.typedJson(204, undefined);
+    res.sendTyped(204, undefined);
 });
 
 // --- Example 5: GET Items (List of Nested Objects) ---
@@ -236,9 +236,9 @@ const GetItemsConfig = {
             },
         },
     },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-const getItemsHandler = withApi(GetItemsConfig)(async (req, res) => {
+const getItemsHandler = withContract(GetItemsConfig)(async (req, res) => {
     const {limit} = req.query; // Typed and validated
 
     const includeDetails = true;
@@ -259,7 +259,7 @@ const getItemsHandler = withApi(GetItemsConfig)(async (req, res) => {
         internalNotes: 'This note is for internal use only and should be stripped.',
     }));
 
-    res.serialize(200, itemsData);
+    res.sendValidated(200, itemsData);
 });
 
 // --- Setup ExpressKit Application (Illustrative) ---

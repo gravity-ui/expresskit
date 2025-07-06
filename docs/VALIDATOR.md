@@ -4,10 +4,10 @@ Provides request validation (body, params, query, headers) and response serializ
 
 ## Quick Start: Automatic Validation
 
-Here's a common example of using `withApi` for automatic request validation and response serialization for a specific HTTP status code:
+Here's a common example of using `withContract` for automatic request validation and response serialization for a specific HTTP status code:
 
 ```typescript
-import {ExpressKit, withApi, AppRoutes, ApiRouteConfig} from '@gravity-ui/expresskit'; // Assuming AppRoutes is exported
+import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit'; // Assuming AppRoutes is exported
 import {NodeKit} from '@gravity-ui/nodekit';
 import {z} from 'zod';
 
@@ -54,10 +54,10 @@ const CreateTaskConfig = {
       // You can add more status codes like 500, etc.
     },
   },
-} satisfies ApiRouteConfig;
+} satisfies RouteContract;
 
-// 3. Create your route handler, wrapped with withApi
-const createTaskHandler = withApi(CreateTaskConfig)(async (req, res) => {
+// 3. Create your route handler, wrapped with withContract
+const createTaskHandler = withContract(CreateTaskConfig)(async (req, res) => {
   // req.body is now automatically validated and typed according to CreateTaskConfig.request.body
   // If validation failed, a ValidationError would have been thrown, and this handler wouldn't run.
   const {name, description} = req.body;
@@ -68,14 +68,14 @@ const createTaskHandler = withApi(CreateTaskConfig)(async (req, res) => {
     name,
     description,
     createdAt: new Date().toISOString(),
-    // someInternalField: 'secret' // This would be stripped by res.serialize if not in TaskSchema for status 201
+    // someInternalField: 'secret' // This would be stripped by res.sendValidated if not in TaskSchema for status 201
   };
 
-  // Use res.serialize() to validate and send the response according to CreateTaskConfig.response.content[201]
+  // Use res.sendValidated() to validate and send the response according to CreateTaskConfig.response.content[201]
   // If newTask doesn't match TaskSchema for status 201, a ResponseValidationError is thrown.
-  res.serialize(201, newTask);
+  res.sendValidated(201, newTask);
   // Or, if you were certain of the type and wanted to send a 400 error:
-  // res.typedJson(400, { message: "A specific bad request reason" });
+  // res.sendTyped(400, { message: "A specific bad request reason" });
 });
 
 // 4. Integrate with your Express/ExpressKit routes:
@@ -94,22 +94,22 @@ const app = new ExpressKit(nodekit, routes);
 - Request body is automatically validated against `CreateTaskConfig.request.body`.
 - If request validation fails, a `ValidationError` is thrown, and the handler is not executed (ExpressKit's error middleware typically sends a 400 response).
 - Inside the handler, `req.body` is typed and contains the validated data.
-- `res.serialize(statusCode, data)` validates `data` against the schema defined in `CreateTaskConfig.response.content[statusCode].schema`.
-- If response validation for `res.serialize` fails, a `ResponseValidationError` is thrown (ExpressKit's error middleware typically sends a 500 response).
-- `res.typedJson(statusCode, data)` sends data type-checked at compile time against the schema for `statusCode`.
+- `res.sendValidated(statusCode, data)` validates `data` against the schema defined in `CreateTaskConfig.response.content[statusCode].schema`.
+- If response validation for `res.sendValidated` fails, a `ResponseValidationError` is thrown (ExpressKit's error middleware typically sends a 500 response).
+- `res.sendTyped(statusCode, data)` sends data type-checked at compile time against the schema for `statusCode`.
 
 Now, let's dive into the details.
 
 ## Core Concepts
 
-The primary tool is the `withApi` higher-order function, which wraps Express route handlers to add validation, serialization, and type safety based on Zod schemas.
+The primary tool is the `withContract` higher-order function, which wraps Express route handlers to add validation, serialization, and type safety based on Zod schemas.
 
-### `withApi(config)(handler)`
+### `withContract(config)(handler)`
 
-- **`config` (`ApiRouteConfig`)**: An object to configure validation behavior and OpenAPI documentation.
+- **`config` (`RouteContract`)**: An object to configure validation behavior and OpenAPI documentation.
 
   ```typescript
-  interface ApiRouteConfig {
+  interface RouteContract {
     name?: string; // Descriptive name for logging/tracing
     operationId?: string; // Unique ID for the operation (e.g., for OpenAPI)
     summary?: string; // Short summary for OpenAPI
@@ -142,41 +142,41 @@ The primary tool is the `withApi` higher-order function, which wraps Express rou
   - `manualValidation`: Set to `true` to disable automatic request validation.
   - `request`: Define Zod schemas for `body`, `params`, `query`, `headers`, and specify allowed `contentType`.
   - `response`: (Mandatory) An object containing:
-    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`. This is used by `res.serialize()` and `res.typedJson()`, and for generating OpenAPI documentation.
+    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`. This is used by `res.sendValidated()` and `res.sendTyped()`, and for generating OpenAPI documentation.
     - `contentType`: An optional string to set the `Content-Type` header for all responses. Defaults to `application/json`.
 
 - **`handler(req, res)`**: Your Express route handler, receiving enhanced `req` and `res` objects.
 
-### Enhanced Request (`ApiRequest`)
+### Enhanced Request (`ContractRequest`)
 
 The `req` object in your handler is enhanced:
 
-- **Typed Properties**: `req.body`, `req.params`, `req.query`, `req.headers` are typed based on `ApiRouteConfig.request` schemas (if automatic validation is enabled and successful).
+- **Typed Properties**: `req.body`, `req.params`, `req.query`, `req.headers` are typed based on `RouteContract.request` schemas (if automatic validation is enabled and successful).
 - **`req.validate(): Promise<ValidatedData>`**:
   - Call this asynchronous method if `manualValidation` is `true`.
   - Returns a promise resolving to an object with validated `body`, `params`, `query`, and `headers`.
   - Throws `ValidationError` on failure.
 
-### Enhanced Response (`ApiResponse`)
+### Enhanced Response (`ContractResponse`)
 
-The `res` object in your handler is enhanced with the following methods (as `ApiRouteConfig.response` is mandatory and defines schemas for status codes):
+The `res` object in your handler is enhanced with the following methods (as `RouteContract.response` is mandatory and defines schemas for status codes):
 
-- **`res.typedJson(statusCode, data)`**:
+- **`res.sendTyped(statusCode, data)`**:
 
   - Sends a JSON response with the given `statusCode`.
-  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode` in `ApiRouteConfig.response.content`. This helps catch type mismatches during coding.
-  - It **does not perform runtime validation** or data transformation (like stripping extra fields not defined in the schema). You are responsible for ensuring the data structure is correct if you bypass `res.serialize()`.
+  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode` in `RouteContract.response.content`. This helps catch type mismatches during coding.
+  - It **does not perform runtime validation** or data transformation (like stripping extra fields not defined in the schema). You are responsible for ensuring the data structure is correct if you bypass `res.sendValidated()`.
   - Useful if you are certain about the data's structure for a specific status code and want to skip the overhead of runtime validation/serialization.
 
-- **`res.serialize(statusCode, data)`**:
+- **`res.sendValidated(statusCode, data)`**:
   - Sends a JSON response with the given `statusCode`.
-  - **Performs runtime validation** of `data` against the schema associated with `statusCode` in `ApiRouteConfig.response.content`.
+  - **Performs runtime validation** of `data` against the schema associated with `statusCode` in `RouteContract.response.content`.
   - **Transforms data** according to that Zod schema. This includes stripping properties not defined in the schema, applying default values, or executing Zod `transform` functions if present.
   - Throws a `ResponseValidationError` if validation fails, preventing invalid data from being sent.
   - Sends the validated and potentially transformed data as a JSON response.
   - This is the **recommended method** to ensure strict adherence to the API contract and data integrity for each status code.
 
-Since `ApiRouteConfig.response` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
+Since `RouteContract.response` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
 
 ### Error Handling
 
@@ -185,7 +185,7 @@ Since `ApiRouteConfig.response` is mandatory, these methods are always available
   - Typically results in a 400 Bad Request.
   - Contains `details` with the Zod error.
 - **`ResponseValidationError`**:
-  - Thrown by `res.serialize(statusCode, data)` if response data doesn't match the schema for the given `statusCode`.
+  - Thrown by `res.sendValidated(statusCode, data)` if response data doesn't match the schema for the given `statusCode`.
   - Typically results in a 500 Internal Server Error.
   - Contains `details` with the Zod error.
 
@@ -194,4 +194,4 @@ These errors are caught by ExpressKit's default error handling middleware.
 ## Key Error Types
 
 - `ValidationError`: For invalid request data.
-- `ResponseValidationError`: For invalid response data during `res.serialize()`.
+- `ResponseValidationError`: For invalid response data during `res.sendValidated()`.

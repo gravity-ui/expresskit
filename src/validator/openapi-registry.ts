@@ -1,11 +1,11 @@
 import type {OpenApiRegistryConfig} from './types';
-import {ApiRouteConfig} from './types';
+import {RouteContract} from './types';
 import {z} from 'zod/v4';
 
 interface RegisteredRoute {
     path: string;
     method: string;
-    config: ApiRouteConfig;
+    config: RouteContract;
 }
 
 export class OpenApiRegistry {
@@ -16,7 +16,7 @@ export class OpenApiRegistry {
         this.config = config;
     }
 
-    registerRoute(route: {path: string; method: string; config: ApiRouteConfig}): void {
+    registerRoute(route: {path: string; method: string; config: RouteContract}): void {
         const openApiPath = route.path.replace(/\/:([^/]+)/g, '/{$1}');
         this.routes.push({
             path: openApiPath,

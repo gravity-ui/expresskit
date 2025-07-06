@@ -1,6 +1,6 @@
 import request from 'supertest';
 import {z} from 'zod/v4';
-import {ExpressKit, withApi} from '../';
+import {ExpressKit, RouteContract, withContract} from '..';
 import {NodeKit} from '@gravity-ui/nodekit';
 import type {Application as ExpressApplication} from 'express';
 
@@ -22,7 +22,7 @@ const AsyncResponseBodySchema = z.object({
     timestamp: z.string(),
 });
 
-const validateSuccessApiConfig = {
+const validateSuccessRouteContract = {
     name: 'ValidateSuccessAPI',
     request: {
         body: z.object({
@@ -36,18 +36,18 @@ const validateSuccessApiConfig = {
             400: {schema: ErrorSchema, description: 'Invalid request body.'},
         },
     },
-};
-const validateSuccessController = withApi(validateSuccessApiConfig)(async (req, res) => {
+} satisfies RouteContract;
+const validateSuccessController = withContract(validateSuccessRouteContract)(async (req, res) => {
     const {body: data} = await req.validate();
     const result = {
         id: '123',
         name: data.name,
         value: data.value,
     };
-    res.typedJson(201, result);
+    res.sendTyped(201, result);
 });
 
-const rejectInvalidApiConfig = {
+const rejectInvalidRouteContract = {
     name: 'RejectInvalidAPI',
     request: {
         body: z.object({
@@ -65,13 +65,13 @@ const rejectInvalidApiConfig = {
             400: {schema: ErrorSchema, description: 'Invalid request body.'},
         },
     },
-};
-const rejectInvalidController = withApi(rejectInvalidApiConfig)(async (req, res) => {
+} satisfies RouteContract;
+const rejectInvalidController = withContract(rejectInvalidRouteContract)(async (req, res) => {
     const {body: data} = await req.validate(); // This should throw for invalid data
     res.status(200).json(data); // Should not be reached if validation fails
 });
 
-const asyncOperationApiConfig = {
+const asyncOperationRouteContract = {
     name: 'AsyncOperationAPI',
     response: {
         content: {
@@ -79,10 +79,10 @@ const asyncOperationApiConfig = {
             500: {schema: ErrorSchema, description: 'Internal server error.'},
         },
     },
-};
-const asyncOperationController = withApi(asyncOperationApiConfig)(async (_req, res) => {
+} satisfies RouteContract;
+const asyncOperationController = withContract(asyncOperationRouteContract)(async (_req, res) => {
     await new Promise((resolve) => setTimeout(resolve, 10));
-    res.typedJson(200, {
+    res.sendTyped(200, {
         timestamp: new Date().toISOString(),
     });
 });
@@ -91,7 +91,7 @@ const ManualValidationBodySchema = z.object({
     itemId: z.string(),
     quantity: z.number().min(1),
 });
-const ManualValidationApiConfig = {
+const ManualValidationRouteContract = {
     name: 'ManualValidationAPI',
     manualValidation: true, // Key for this test
     request: {
@@ -103,8 +103,8 @@ const ManualValidationApiConfig = {
             400: {schema: ErrorSchema, description: 'Invalid input for manual validation.'},
         },
     },
-};
-const manualValidationController = withApi(ManualValidationApiConfig)(async (req, res) => {
+} satisfies RouteContract;
+const manualValidationController = withContract(ManualValidationRouteContract)(async (req, res) => {
     // Manually trigger validation.
     // If validation fails, withApi middleware is expected to catch the ZodError
     // and automatically send a 400 response.
@@ -112,7 +112,7 @@ const manualValidationController = withApi(ManualValidationApiConfig)(async (req
     const {body: validatedData} = await req.validate();
 
     // Access validated data and send response
-    res.typedJson(200, validatedData);
+    res.sendTyped(200, validatedData);
 });
 
 const TypedJsonTestSchema = z
@@ -123,15 +123,15 @@ const TypedJsonTestSchema = z
     })
     .loose(); // Use .loose() to allow extra fields without erroring/stripping
 
-const TypedJsonApiConfig = {
+const TypedJsonRouteContract = {
     name: 'TypedJsonAPI',
     response: {
         content: {
             200: {schema: TypedJsonTestSchema, description: 'TypedJSON test successful.'},
         },
     },
-};
-const typedJsonController = withApi(TypedJsonApiConfig)(async (_req, res) => {
+} satisfies RouteContract;
+const typedJsonController = withContract(TypedJsonRouteContract)(async (_req, res) => {
     const dataWithExtraField = {
         id: 1,
         name: 'Test Item',
@@ -139,7 +139,7 @@ const typedJsonController = withApi(TypedJsonApiConfig)(async (_req, res) => {
         anotherExtra: 123,
     };
     // typedJson should perform type checking based on schema but not strip extra fields
-    res.typedJson(200, dataWithExtraField);
+    res.sendTyped(200, dataWithExtraField);
 });
 
 const SerializeTestSchema = z.object({
@@ -147,16 +147,16 @@ const SerializeTestSchema = z.object({
     name: z.string(),
 });
 
-const SerializeApiConfig = {
+const SerializeRouteContract = {
     name: 'SerializeAPI',
     response: {
         content: {
             200: {schema: SerializeTestSchema, description: 'Serialize test successful.'},
         },
     },
-};
+} satisfies RouteContract;
 
-const serializeController = withApi(SerializeApiConfig)(async (_req, res) => {
+const serializeController = withContract(SerializeRouteContract)(async (_req, res) => {
     const dataWithExtraField = {
         id: 1,
         name: 'Test Item',
@@ -164,7 +164,7 @@ const serializeController = withApi(SerializeApiConfig)(async (_req, res) => {
         anotherExtra: 456,
     };
     // serialize should strip extra fields according to the schema
-    res.serialize(200, dataWithExtraField);
+    res.sendValidated(200, dataWithExtraField);
 });
 
 const NestedObjectSchema = z.object({
@@ -187,7 +187,7 @@ const SerializeNestedTestSchema = z.object({
     metadata: NestedObjectSchema,
 });
 
-const SerializeNestedApiConfig = {
+const SerializeNestedRouteContract = {
     name: 'SerializeNestedAPI',
     response: {
         content: {
@@ -197,9 +197,9 @@ const SerializeNestedApiConfig = {
             },
         },
     },
-};
+} satisfies RouteContract;
 
-const serializeNestedController = withApi(SerializeNestedApiConfig)(async (_req, res) => {
+const serializeNestedController = withContract(SerializeNestedRouteContract)(async (_req, res) => {
     const dataWithExtraFieldsNested = {
         orderId: 'order-123',
         extraOrderField: 'should be stripped',
@@ -226,7 +226,7 @@ const serializeNestedController = withApi(SerializeNestedApiConfig)(async (_req,
         },
         globalExtra: 'completely irrelevant',
     };
-    res.serialize(200, dataWithExtraFieldsNested);
+    res.sendValidated(200, dataWithExtraFieldsNested);
 });
 
 const ComprehensiveValidationSchema = z.object({
@@ -236,7 +236,7 @@ const ComprehensiveValidationSchema = z.object({
     traceId: z.string().uuid(),
 });
 
-const ComprehensiveValidationApiConfig = {
+const ComprehensiveValidationRouteContract = {
     name: 'ComprehensiveValidationAPI',
     request: {
         params: z.object({
@@ -261,9 +261,9 @@ const ComprehensiveValidationApiConfig = {
             400: {schema: ErrorSchema, description: 'Invalid input for params, query, or headers.'},
         },
     },
-};
+} satisfies RouteContract;
 
-const comprehensiveValidationController = withApi(ComprehensiveValidationApiConfig)(async (
+const comprehensiveValidationController = withContract(ComprehensiveValidationRouteContract)(async (
     req,
     res,
 ) => {
@@ -272,7 +272,7 @@ const comprehensiveValidationController = withApi(ComprehensiveValidationApiConf
     const apiVersion = req.headers['x-api-version'];
     const traceId = req.headers['x-trace-id'];
 
-    res.typedJson(200, {
+    res.sendTyped(200, {
         userId,
         source,
         apiVersion,
@@ -306,7 +306,7 @@ describe('withApi', () => {
             'GET /serialize-nested-test': {handler: serializeNestedController},
             'POST /error-structure-test': {handler: rejectInvalidController},
             'POST /custom-content-type': {
-                handler: withApi({
+                handler: withContract({
                     request: {
                         contentType: ['application/x-www-form-urlencoded'],
                         body: z.object({name: z.string()}),
@@ -319,7 +319,7 @@ describe('withApi', () => {
                         },
                     },
                 })(async (req, res) => {
-                    res.serialize(200, req.body);
+                    res.sendValidated(200, req.body);
                 }),
             },
         };

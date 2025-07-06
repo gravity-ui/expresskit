@@ -2,12 +2,12 @@ import {Request as ExpressRequest, Response} from 'express';
 import {ZodError, z} from 'zod/v4'; // Import ZodError
 import {SerializationError, ValidationError} from './errors';
 import {
-    ApiRequest,
-    ApiResponse,
-    ApiRouteConfig,
+    ContractRequest,
+    ContractResponse,
     Exact,
     InferDataFromResponseDef,
     IsManualValidation,
+    RouteContract,
     WithApiTypeParams,
 } from './types';
 import {AppRouteHandler} from '../types';
@@ -16,7 +16,7 @@ export {ValidationError, SerializationError} from './errors';
 export {OpenApiRegistry} from './openapi-registry';
 export * from './types';
 
-export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
+export function withContract<TConfig extends RouteContract>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;
     type IsManualActual = IsManualValidation<TConfig>;
 
@@ -39,21 +39,21 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
 
     return function (
         handler: (
-            req: ApiRequest<
+            req: ContractRequest<
                 IsManualActual,
                 Params['TBody'],
                 Params['TParams'],
                 Params['TQuery'],
                 Params['THeaders']
             >,
-            res: ApiResponse<TConfig>,
+            res: ContractResponse<TConfig>,
         ) => Promise<void> | void,
     ) {
         const finalHandler: AppRouteHandler = async (
             expressReq: ExpressRequest,
             expressRes: Response,
         ) => {
-            const enhancedReq = expressReq as ApiRequest<
+            const enhancedReq = expressReq as ContractRequest<
                 IsManualActual,
                 Params['TBody'],
                 Params['TParams'],
@@ -117,9 +117,9 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 };
             };
 
-            const enhancedRes = expressRes as ApiResponse<TConfig>;
+            const enhancedRes = expressRes as ContractResponse<TConfig>;
 
-            enhancedRes.typedJson = function <
+            enhancedRes.sendTyped = function <
                 S extends keyof TConfig['response']['content'],
                 D extends InferDataFromResponseDef<TConfig['response']['content'][S]>,
             >(
@@ -129,7 +129,7 @@ export function withApi<TConfig extends ApiRouteConfig>(config: TConfig) {
                 expressRes.status(statusCode as number).json(data);
             };
 
-            enhancedRes.serialize = function <S extends keyof TConfig['response']['content']>(
+            enhancedRes.sendValidated = function <S extends keyof TConfig['response']['content']>(
                 statusCode: S,
                 data: InferDataFromResponseDef<TConfig['response']['content'][S]>,
             ): void {
