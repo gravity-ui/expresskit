@@ -17,3 +17,6 @@ export type {
 export {AuthPolicy} from './types';
 
 export * from './csp';
+
+export {withContract, ValidationError} from './validator';
+export type {ContractRequest, ContractResponse, RouteContract} from './validator';
