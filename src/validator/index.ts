@@ -11,10 +11,12 @@ import {
     WithApiTypeParams,
 } from './types';
 import {AppRouteHandler} from '../types';
+import {registerContract} from './contractRegistry';
 
 export {ValidationError, SerializationError} from './errors';
 export {OpenApiRegistry} from './openapi-registry';
 export * from './types';
+export {getContract, getRouteContract, registerContract} from './contractRegistry';
 
 export function withContract<TConfig extends RouteContract>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;
@@ -201,7 +203,8 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
             }
         };
 
-        finalHandler.apiConfig = config;
+        // Store in WeakMap
+        registerContract(finalHandler, config);
 
         return finalHandler;
     };

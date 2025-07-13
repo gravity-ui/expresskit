@@ -12,7 +12,7 @@ import type {
 import type {CSPPreset} from './csp';
 import type {getDefaultPresets} from './csp/default-presets';
 import type {CSPMiddlewareParams} from './csp/middleware';
-import type {OpenApiRegistryConfig, RouteContract} from './validator';
+import type {OpenApiRegistryConfig} from './validator';
 
 declare global {
     // eslint-disable-next-line
@@ -145,7 +145,6 @@ export interface AppRouteHandler {
         req: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
         res: Response<any, Record<string, any>>,
     ): void | Promise<void>;
-    apiConfig?: RouteContract;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 

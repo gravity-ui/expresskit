@@ -16,7 +16,7 @@ import {
     HttpMethod,
 } from './types';
 
-import {OpenApiRegistry} from './validator';
+import {OpenApiRegistry, getRouteContract} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -165,7 +165,8 @@ export function setupRoutes(
         } else {
             const handler = wrapRouteHandler(routeHandler as AppRouteHandler, handlerName);
             expressApp[method](routePath, wrappedMiddleware, handler);
-            const apiConfig = (routeHandler as AppRouteHandler).apiConfig;
+
+            const apiConfig = getRouteContract(routeHandler as AppRouteHandler);
 
             if (openapiRegistry && apiConfig) {
                 openapiRegistry.registerRoute({
