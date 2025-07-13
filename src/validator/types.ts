@@ -1,6 +1,48 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {z} from 'zod/v4';
 
+// OpenAPI Security Scheme Object types
+export interface SecuritySchemeObject {
+    type: 'apiKey' | 'http' | 'oauth2' | 'openIdConnect';
+    description?: string;
+
+    // apiKey
+    in?: 'query' | 'header' | 'cookie';
+    name?: string;
+
+    // http
+    scheme?: string;
+    bearerFormat?: string;
+
+    // oauth2
+    flows?: {
+        implicit?: {
+            authorizationUrl: string;
+            refreshUrl?: string;
+            scopes: Record<string, string>;
+        };
+        password?: {
+            tokenUrl: string;
+            refreshUrl?: string;
+            scopes: Record<string, string>;
+        };
+        clientCredentials?: {
+            tokenUrl: string;
+            refreshUrl?: string;
+            scopes: Record<string, string>;
+        };
+        authorizationCode?: {
+            authorizationUrl: string;
+            tokenUrl: string;
+            refreshUrl?: string;
+            scopes: Record<string, string>;
+        };
+    };
+
+    // openIdConnect
+    openIdConnectUrl?: string;
+}
+
 export interface OpenApiRegistryConfig {
     enabled?: boolean;
     path?: string;

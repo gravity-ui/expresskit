@@ -17,6 +17,16 @@ export {ValidationError, SerializationError} from './errors';
 export {OpenApiRegistry} from './openapi-registry';
 export * from './types';
 export {getContract, getRouteContract, registerContract} from './contractRegistry';
+export {
+    withSecurityScheme,
+    getSecurityScheme,
+    registerSecurityScheme,
+    bearerAuth,
+    apiKeyAuth,
+    basicAuth,
+    oauth2Auth,
+    oidcAuth,
+} from './securitySchemes';
 
 export function withContract<TConfig extends RouteContract>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;

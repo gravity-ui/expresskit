@@ -18,5 +18,14 @@ export {AuthPolicy} from './types';
 
 export * from './csp';
 
-export {withContract, ValidationError} from './validator';
-export type {ContractRequest, ContractResponse, RouteContract} from './validator';
+export {
+    withContract,
+    ValidationError,
+    withSecurityScheme,
+    bearerAuth,
+    apiKeyAuth,
+    basicAuth,
+    oauth2Auth,
+    oidcAuth,
+} from './validator';
+export type {ContractRequest, ContractResponse, RouteContract, SecuritySchemeObject} from './validator';

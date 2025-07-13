@@ -17,6 +17,7 @@ import {
 } from './types';
 
 import {OpenApiRegistry, getRouteContract} from './validator';
+import {getSecurityScheme} from './validator/securitySchemes';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,10 +170,29 @@ export function setupRoutes(
             const apiConfig = getRouteContract(routeHandler as AppRouteHandler);
 
             if (openapiRegistry && apiConfig) {
+                // Check if we have an auth handler with a security scheme
+                const security = [];
+                
+                // Only add security if auth is enabled for this route
+                if (authPolicy !== AuthPolicy.disabled && authHandler) {
+                    const securityScheme = getSecurityScheme(authHandler);
+                    
+                    if (securityScheme) {
+                        // Register the security scheme if it hasn't been registered already
+                        openapiRegistry.registerSecurityScheme(securityScheme.name, securityScheme.scheme);
+                        
+                        // Add security requirement to the route
+                        security.push({
+                            [securityScheme.name]: securityScheme.scopes || [],
+                        });
+                    }
+                }
+                
                 openapiRegistry.registerRoute({
                     method: method as HttpMethod,
                     path: routePath,
                     config: apiConfig,
+                    security: security.length > 0 ? security : undefined,
                 });
             }
         }

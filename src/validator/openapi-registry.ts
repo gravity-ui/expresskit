@@ -1,4 +1,4 @@
-import type {OpenApiRegistryConfig} from './types';
+import type {OpenApiRegistryConfig, SecuritySchemeObject} from './types';
 import {RouteContract} from './types';
 import {z} from 'zod/v4';
 
@@ -6,25 +6,32 @@ interface RegisteredRoute {
     path: string;
     method: string;
     config: RouteContract;
+    security?: Array<Record<string, string[]>>;
 }
 
 export class OpenApiRegistry {
     private config: OpenApiRegistryConfig;
     private routes: RegisteredRoute[] = [];
+    private securitySchemes: Record<string, SecuritySchemeObject> = {};
 
     constructor(config: OpenApiRegistryConfig) {
         this.config = config;
     }
 
-    registerRoute(route: {path: string; method: string; config: RouteContract}): void {
+    registerRoute(route: {path: string; method: string; config: RouteContract; security?: Array<Record<string, string[]>>}): void {
         const openApiPath = route.path.replace(/\/:([^/]+)/g, '/{$1}');
         this.routes.push({
             path: openApiPath,
             method: route.method.toLowerCase(),
             config: route.config,
+            security: route.security,
         });
     }
 
+    registerSecurityScheme(name: string, scheme: SecuritySchemeObject): void {
+        this.securitySchemes[name] = scheme;
+    }
+    
     // must return a valid OpenAPI schema object
     getOpenApiSchema() {
         const openApiSchema = {
@@ -38,6 +45,7 @@ export class OpenApiRegistry {
             paths: {} as Record<string, Record<string, unknown>>,
             components: {
                 schemas: {} as Record<string, unknown>,
+                securitySchemes: this.securitySchemes,
             },
         };
 
@@ -53,6 +61,11 @@ export class OpenApiRegistry {
                 responses: {},
             };
 
+            // Add security requirements if present
+            if (route.security && route.security.length > 0) {
+                operation.security = route.security;
+            }
+            
             // Add query parameters
             if (route.config.request?.query) {
                 const querySchema = z.toJSONSchema(route.config.request.query);
