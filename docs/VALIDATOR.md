@@ -129,7 +129,7 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
       content: Record<
         number,
         {
-          schema: z.ZodType<any>; // Zod schema for this status code's response body
+          schema?: z.ZodType<any>; // Optional Zod schema for this status code's response body
           description?: string; // Description for this response (e.g., for OpenAPI)
         }
       >;
@@ -161,7 +161,7 @@ The `req` object in your handler is enhanced:
 
 The `res` object in your handler is enhanced with the following methods:
 
-- **`res.sendTyped(statusCode, data)`**:
+- **`res.sendTyped(statusCode, data?)`**:
 
   - Sends a JSON response with the given `statusCode`.
   - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode`.
