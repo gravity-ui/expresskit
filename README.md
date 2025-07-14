@@ -25,31 +25,6 @@ const app = new ExpressKit(nodekit, {
 app.run();
 ```
 
-## Security Schemes for OpenAPI
-
-ExpressKit now supports OpenAPI security schemes for documenting authentication requirements. This allows you to easily add security definitions to your API documentation.
-
-```typescript
-import {ExpressKit, bearerAuth} from '@gravity-ui/expresskit';
-
-// Create a bearer token auth handler with OpenAPI documentation
-const jwtAuthHandler = bearerAuth('jwtAuth')(function authenticate(req, res, next) {
-  // Your authentication logic here
-  next();
-});
-
-const app = new ExpressKit(nodekit, {
-  'GET /protected': {
-    handler: (req, res) => {
-      res.json({message: 'Protected resource'});
-    },
-    authHandler: jwtAuthHandler,
-  },
-});
-```
-
-See [Security Schemes Documentation](docs/SECURITY_SCHEMES.md) for more details.
-
 ## CSP
 
 `config.ts`
