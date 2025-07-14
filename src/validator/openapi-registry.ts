@@ -1,6 +1,9 @@
 import type {OpenApiRegistryConfig, SecuritySchemeObject} from './types';
 import {RouteContract} from './types';
 import {z} from 'zod/v4';
+import {AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
+import {getRouteContract} from './contractRegistry';
+import {getSecurityScheme} from './securitySchemes';
 
 interface RegisteredRoute {
     path: string;
@@ -18,21 +21,42 @@ export class OpenApiRegistry {
         this.config = config;
     }
 
-    registerRoute(route: {path: string; method: string; config: RouteContract; security?: Array<Record<string, string[]>>}): void {
-        const openApiPath = route.path.replace(/\/:([^/]+)/g, '/{$1}');
-        this.routes.push({
-            path: openApiPath,
-            method: route.method.toLowerCase(),
-            config: route.config,
-            security: route.security,
-        });
-    }
-
     registerSecurityScheme(name: string, scheme: SecuritySchemeObject): void {
         this.securitySchemes[name] = scheme;
     }
-    
-    // must return a valid OpenAPI schema object
+
+    registerRoute(
+        method: HttpMethod,
+        routePath: string,
+        routeHandler: AppRouteHandler,
+        authHandler?: AppMiddleware,
+    ): void {
+        const apiConfig = getRouteContract(routeHandler);
+        if (!apiConfig) return;
+
+        const security = [];
+
+        if (authHandler) {
+            const securityScheme = getSecurityScheme(authHandler);
+
+            if (securityScheme) {
+                this.registerSecurityScheme(securityScheme.name, securityScheme.scheme);
+
+                security.push({
+                    [securityScheme.name]: securityScheme.scopes || [],
+                });
+            }
+        }
+
+        const openApiPath = routePath.replace(/\/:([^/]+)/g, '/{$1}');
+        this.routes.push({
+            path: openApiPath,
+            method: method.toLowerCase(),
+            config: apiConfig,
+            security: security.length > 0 ? security : undefined,
+        });
+    }
+
     getOpenApiSchema() {
         const openApiSchema = {
             openapi: '3.0.3',
@@ -65,7 +89,7 @@ export class OpenApiRegistry {
             if (route.security && route.security.length > 0) {
                 operation.security = route.security;
             }
-            
+
             // Add query parameters
             if (route.config.request?.query) {
                 const querySchema = z.toJSONSchema(route.config.request.query);

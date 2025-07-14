@@ -174,7 +174,7 @@ The `res` object in your handler is enhanced with the following methods (as `Rou
   - **Transforms data** according to that Zod schema. This includes stripping properties not defined in the schema, applying default values, or executing Zod `transform` functions if present.
   - Throws a `ResponseValidationError` if validation fails, preventing invalid data from being sent.
   - Sends the validated and potentially transformed data as a JSON response.
-  - This is the **recommended method** to ensure strict adherence to the API contract and data integrity for each status code.
+  - Use this method to ensure strict adherence to the API contract and data integrity for each status code.
 
 Since `RouteContract.response` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
 

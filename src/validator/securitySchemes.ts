@@ -10,9 +10,6 @@ export interface SecuritySchemeDefinition {
     scopes?: string[];
 }
 
-/**
- * Register a security scheme for an auth handler
- */
 export function registerSecurityScheme(
     handler: AppAuthHandler,
     definition: SecuritySchemeDefinition,
@@ -20,18 +17,10 @@ export function registerSecurityScheme(
     securitySchemesRegistry.set(handler, definition);
 }
 
-/**
- * Get the security scheme for an auth handler
- */
-export function getSecurityScheme(
-    handler: AppAuthHandler,
-): SecuritySchemeDefinition | undefined {
+export function getSecurityScheme(handler: AppAuthHandler): SecuritySchemeDefinition | undefined {
     return securitySchemesRegistry.get(handler);
 }
 
-/**
- * Higher-Order Component to add security scheme to an auth handler
- */
 export function withSecurityScheme(definition: SecuritySchemeDefinition) {
     return function <T extends AppAuthHandler>(handler: T): T {
         registerSecurityScheme(handler, definition);
@@ -39,10 +28,7 @@ export function withSecurityScheme(definition: SecuritySchemeDefinition) {
     };
 }
 
-/**
- * Bearer token authentication
- */
-export function bearerAuth(name: string = 'bearerAuth', scopes?: string[]) {
+export function bearerAuth(name = 'bearerAuth', scopes?: string[]) {
     return withSecurityScheme({
         name,
         scheme: {
@@ -54,13 +40,10 @@ export function bearerAuth(name: string = 'bearerAuth', scopes?: string[]) {
     });
 }
 
-/**
- * API key authentication
- */
 export function apiKeyAuth(
-    name: string = 'apiKey',
+    name = 'apiKey',
     in_: 'header' | 'query' | 'cookie' = 'header',
-    paramName: string = 'X-API-Key',
+    paramName = 'X-API-Key',
     scopes?: string[],
 ) {
     return withSecurityScheme({
@@ -74,10 +57,7 @@ export function apiKeyAuth(
     });
 }
 
-/**
- * Basic authentication
- */
-export function basicAuth(name: string = 'basicAuth', scopes?: string[]) {
+export function basicAuth(name = 'basicAuth', scopes?: string[]) {
     return withSecurityScheme({
         name,
         scheme: {
@@ -88,11 +68,8 @@ export function basicAuth(name: string = 'basicAuth', scopes?: string[]) {
     });
 }
 
-/**
- * OAuth2 authentication
- */
 export function oauth2Auth(
-    name: string = 'oauth2Auth',
+    name = 'oauth2Auth',
     flows: SecuritySchemeObject['flows'],
     scopes?: string[],
 ) {
@@ -106,10 +83,7 @@ export function oauth2Auth(
     });
 }
 
-/**
- * OpenID Connect authentication
- */
-export function oidcAuth(name: string = 'oidcAuth', openIdConnectUrl: string, scopes?: string[]) {
+export function oidcAuth(name = 'oidcAuth', openIdConnectUrl: string, scopes?: string[]) {
     return withSecurityScheme({
         name,
         scheme: {

@@ -28,4 +28,10 @@ export {
     oauth2Auth,
     oidcAuth,
 } from './validator';
-export type {ContractRequest, ContractResponse, RouteContract, SecuritySchemeObject} from './validator';
+
+export type {
+    ContractRequest,
+    ContractResponse,
+    RouteContract,
+    SecuritySchemeObject,
+} from './validator';
