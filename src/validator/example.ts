@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import {z} from 'zod/v4';
-import {AppRoutes, RouteContract, withContract} from '../index'; // Adjust path based on actual export structure
+import {AppRoutes, AuthPolicy, RouteContract, apiKeyAuth, bearerAuth, withContract} from '../index'; // Adjust path based on actual export structure
 import {ExpressKit} from '../expresskit'; // Adjust path
 import {NodeKit} from '@gravity-ui/nodekit'; // Assuming this is a peer dependency or similar
 import crypto from 'crypto';
@@ -40,6 +40,69 @@ const ExtendedItemSchema = ItemSchema.extend({
     description: z.string().optional(),
     details: z.array(ItemDetailSchema),
     relatedItemIds: z.array(z.uuid()).optional(),
+});
+
+// --- Authentication Handlers ---
+// JWT Bearer Token Authentication Handler
+const jwtAuthHandler = bearerAuth(
+    'jwtAuth', // scheme name in OpenAPI docs
+    ['read:users', 'write:users'], // optional scopes
+)(function authenticate(req, res, next) {
+    // Get the Authorization header
+    const authHeader = req.headers.authorization;
+
+    // Check if the header exists and starts with "Bearer "
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({error: 'Unauthorized: Missing or invalid token'});
+        return;
+    }
+
+    // Extract the token
+    const token = authHeader.split(' ')[1];
+
+    // In a real application, you would validate the JWT token here
+    // For this example, we'll just check if it's a non-empty string
+    if (!token) {
+        res.status(401).json({error: 'Unauthorized: Invalid token'});
+        return;
+    }
+
+    // For demo purposes, let's assume the token is valid if it's "valid_token"
+    // eslint-disable-next-line security/detect-possible-timing-attacks
+    if (token !== 'valid_token') {
+        res.status(401).json({error: 'Unauthorized: Invalid token'});
+        return;
+    }
+
+    // If token is valid, proceed to the next middleware
+    next();
+});
+
+// API Key Authentication Handler
+const apiKeyHandler = apiKeyAuth(
+    'apiKeyAuth', // scheme name
+    'header', // location: 'header', 'query', or 'cookie'
+    'X-API-Key', // parameter name
+    ['read:items'], // optional scopes
+)(function authenticate(req, res, next) {
+    // Get the API key from the header
+    const apiKey = req.headers['x-api-key'];
+
+    // Check if the API key exists
+    if (!apiKey) {
+        res.status(401).json({error: 'Unauthorized: Missing API key'});
+        return;
+    }
+
+    // For demo purposes, let's assume the API key is valid if it's "valid_api_key"
+    // eslint-disable-next-line security/detect-possible-timing-attacks
+    if (apiKey !== 'valid_api_key') {
+        res.status(401).json({error: 'Unauthorized: Invalid API key'});
+        return;
+    }
+
+    // If API key is valid, proceed to the next middleware
+    next();
 });
 
 // --- Example 1: GET User by ID ---
@@ -264,11 +327,27 @@ const getItemsHandler = withContract(GetItemsConfig)(async (req, res) => {
 
 // --- Setup ExpressKit Application (Illustrative) ---
 export const exampleRoutes: AppRoutes = {
-    'GET /users/:userId': getUserHandler,
-    'POST /items': createItemHandler,
-    'PUT /users/:userId/email': updateUserEmailHandler,
-    'DELETE /items/:itemId': deleteItemHandler,
-    'GET /items': getItemsHandler, // Added new route
+    'GET /users/:userId': {
+        handler: getUserHandler,
+        authHandler: jwtAuthHandler, // Protect user data with JWT auth
+        authPolicy: AuthPolicy.required,
+    },
+    'POST /items': {
+        handler: createItemHandler,
+        authHandler: apiKeyHandler, // Protect item creation with API key
+        authPolicy: AuthPolicy.required,
+    },
+    'PUT /users/:userId/email': {
+        handler: updateUserEmailHandler,
+        authHandler: jwtAuthHandler, // Protect email updates with JWT auth
+        authPolicy: AuthPolicy.required,
+    },
+    'DELETE /items/:itemId': {
+        handler: deleteItemHandler,
+        authHandler: apiKeyHandler, // Protect item deletion with API key
+        authPolicy: AuthPolicy.required,
+    },
+    'GET /items': getItemsHandler, // Keep this route public
 };
 
 // To run this example (you'd typically have this in your main app file):
@@ -292,15 +371,22 @@ app.run();
 console.log(`Example server running on port`);
 console.log('Try:');
 console.log('  GET /users/123e4567-e89b-12d3-a456-426614174000');
+console.log('    Header: Authorization: Bearer valid_token');
 console.log('  GET /users/00000000-0000-0000-0000-000000000000 (for 404)');
+console.log('    Header: Authorization: Bearer valid_token');
 console.log('  POST /items with JSON body { "itemName": "My New Item", "quantity": 10 }');
+console.log('    Header: X-API-Key: valid_api_key');
 console.log('  POST /items with JSON body { "itemName": "forbidden_item", "quantity": 1 }');
+console.log('    Header: X-API-Key: valid_api_key');
 console.log(
     '  PUT /users/123e4567-e89b-12d3-a456-426614174000/email with JSON body { "email": "new@example.com", "confirmEmail": "new@example.com" }',
 );
+console.log('    Header: Authorization: Bearer valid_token');
 console.log(
     '  PUT /users/123e4567-e89b-12d3-a456-426614174000/email with JSON body { "email": "new@example.com", "confirmEmail": "other@example.com" }',
 );
+console.log('    Header: Authorization: Bearer valid_token');
 console.log('  DELETE /items/123e4567-e89b-12d3-a456-426614174000');
-console.log('  GET /items');
+console.log('    Header: X-API-Key: valid_api_key');
+console.log('  GET /items (public route, no authentication required)');
 console.log('  GET /items?limit=3&includeDetails=false');

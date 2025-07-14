@@ -33,20 +33,18 @@ ExpressKit now supports OpenAPI security schemes for documenting authentication 
 import {ExpressKit, bearerAuth} from '@gravity-ui/expresskit';
 
 // Create a bearer token auth handler with OpenAPI documentation
-const jwtAuthHandler = bearerAuth('jwtAuth')(
-  function authenticate(req, res, next) {
-    // Your authentication logic here
-    next();
-  }
-);
+const jwtAuthHandler = bearerAuth('jwtAuth')(function authenticate(req, res, next) {
+  // Your authentication logic here
+  next();
+});
 
 const app = new ExpressKit(nodekit, {
   'GET /protected': {
     handler: (req, res) => {
       res.json({message: 'Protected resource'});
     },
-    authHandler: jwtAuthHandler
-  }
+    authHandler: jwtAuthHandler,
+  },
 });
 ```
 

@@ -2,16 +2,33 @@
 
 Provides request validation (body, params, query, headers) and response serialization and documentation using Zod schemas.
 
+## Table of Contents
+
+- [Quick Start: Automatic Validation](#quick-start-automatic-validation)
+- [Core Concepts](#core-concepts)
+  - [withContract Configuration](#withcontractconfighandler)
+  - [Enhanced Request](#enhanced-request-contractrequest)
+  - [Enhanced Response](#enhanced-response-contractresponse)
+  - [Error Handling](#error-handling)
+- [Security Schemes for OpenAPI Documentation](#security-schemes-for-openapi-documentation)
+  - [Basic Usage](#basic-usage)
+  - [Available Security Scheme Types](#available-security-scheme-types)
+  - [Custom Security Schemes](#custom-security-schemes)
+  - [How It Works](#how-it-works)
+  - [Best Practices](#best-practices)
+
+---
+
 ## Quick Start: Automatic Validation
 
-Here's a common example of using `withContract` for automatic request validation and response serialization for a specific HTTP status code:
+Here's a common example of using `withContract` for automatic request validation and response serialization:
 
 ```typescript
-import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit'; // Assuming AppRoutes is exported
+import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit';
 import {NodeKit} from '@gravity-ui/nodekit';
 import {z} from 'zod';
 
-// 1. Define your Zod schemas
+// Define your Zod schemas
 const TaskSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -24,23 +41,17 @@ const ErrorSchema = z.object({
   code: z.string().optional(),
 });
 
-// 2. Configure the API endpoint
+// Configure the API endpoint
 const CreateTaskConfig = {
-  name: 'CreateTask', // Optional: for logging/tracing
-  operationId: 'createTaskOperation', // Optional: for OpenAPI
-  summary: 'Creates a new task', // Optional: for OpenAPI
-  description: 'Detailed description of what creating a task does.', // Optional: for OpenAPI
-  tags: ['Tasks'], // Optional: for OpenAPI
+  name: 'CreateTask',
+  operationId: 'createTaskOperation',
+  summary: 'Creates a new task',
   request: {
-    // Schemas for incoming request parts
     body: z.object({
-      name: z.string().min(1), // Body must have a name
+      name: z.string().min(1),
       description: z.string().optional(),
     }),
-    // params: z.object({ id: z.string() }), // Example for route params
-    // query: z.object({ includeAuthor: z.string() }), // Example for query params
   },
-  // Define responses for different HTTP status codes
   response: {
     content: {
       201: {
@@ -51,54 +62,43 @@ const CreateTaskConfig = {
         schema: ErrorSchema,
         description: 'Invalid input data.',
       },
-      // You can add more status codes like 500, etc.
     },
   },
 } satisfies RouteContract;
 
-// 3. Create your route handler, wrapped with withContract
+// Create your route handler, wrapped with withContract
 const createTaskHandler = withContract(CreateTaskConfig)(async (req, res) => {
-  // req.body is now automatically validated and typed according to CreateTaskConfig.request.body
-  // If validation failed, a ValidationError would have been thrown, and this handler wouldn't run.
+  // req.body is automatically validated and typed
   const {name, description} = req.body;
 
-  // Your business logic here
   const newTask = {
     id: 'task_' + Date.now(),
     name,
     description,
     createdAt: new Date().toISOString(),
-    // someInternalField: 'secret' // This would be stripped by res.sendValidated if not in TaskSchema for status 201
   };
 
-  // Use res.sendValidated() to validate and send the response according to CreateTaskConfig.response.content[201]
-  // If newTask doesn't match TaskSchema for status 201, a ResponseValidationError is thrown.
+  // Validates response against TaskSchema and sends it
   res.sendValidated(201, newTask);
-  // Or, if you were certain of the type and wanted to send a 400 error:
-  // res.sendTyped(400, { message: "A specific bad request reason" });
 });
 
-// 4. Integrate with your Express/ExpressKit routes:
+// Integrate with your Express/ExpressKit routes
 const routes: AppRoutes = {
   'POST /tasks': createTaskHandler,
 };
 
 const nodekit = new NodeKit();
 const app = new ExpressKit(nodekit, routes);
-
-// app.run(); // Example: To run the app
 ```
 
-**Key takeaways from this example:**
+**Key takeaways:**
 
-- Request body is automatically validated against `CreateTaskConfig.request.body`.
-- If request validation fails, a `ValidationError` is thrown, and the handler is not executed (ExpressKit's error middleware typically sends a 400 response).
-- Inside the handler, `req.body` is typed and contains the validated data.
-- `res.sendValidated(statusCode, data)` validates `data` against the schema defined in `CreateTaskConfig.response.content[statusCode].schema`.
-- If response validation for `res.sendValidated` fails, a `ResponseValidationError` is thrown (ExpressKit's error middleware typically sends a 500 response).
-- `res.sendTyped(statusCode, data)` sends data type-checked at compile time against the schema for `statusCode`.
+- Request body is automatically validated against your schema
+- Inside the handler, `req.body` is typed according to your schema
+- `res.sendValidated()` validates the response data against your schema
+- If validation fails, appropriate errors are thrown and handled
 
-Now, let's dive into the details.
+---
 
 ## Core Concepts
 
@@ -142,7 +142,7 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
   - `manualValidation`: Set to `true` to disable automatic request validation.
   - `request`: Define Zod schemas for `body`, `params`, `query`, `headers`, and specify allowed `contentType`.
   - `response`: (Mandatory) An object containing:
-    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`. This is used by `res.sendValidated()` and `res.sendTyped()`, and for generating OpenAPI documentation.
+    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`.
     - `contentType`: An optional string to set the `Content-Type` header for all responses. Defaults to `application/json`.
 
 - **`handler(req, res)`**: Your Express route handler, receiving enhanced `req` and `res` objects.
@@ -159,24 +159,21 @@ The `req` object in your handler is enhanced:
 
 ### Enhanced Response (`ContractResponse`)
 
-The `res` object in your handler is enhanced with the following methods (as `RouteContract.response` is mandatory and defines schemas for status codes):
+The `res` object in your handler is enhanced with the following methods:
 
 - **`res.sendTyped(statusCode, data)`**:
 
   - Sends a JSON response with the given `statusCode`.
-  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode` in `RouteContract.response.content`. This helps catch type mismatches during coding.
-  - It **does not perform runtime validation** or data transformation (like stripping extra fields not defined in the schema). You are responsible for ensuring the data structure is correct if you bypass `res.sendValidated()`.
-  - Useful if you are certain about the data's structure for a specific status code and want to skip the overhead of runtime validation/serialization.
+  - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode`.
+  - It **does not perform runtime validation** or data transformation.
+  - Useful if you are certain about the data's structure and want to skip validation overhead.
 
 - **`res.sendValidated(statusCode, data)`**:
   - Sends a JSON response with the given `statusCode`.
-  - **Performs runtime validation** of `data` against the schema associated with `statusCode` in `RouteContract.response.content`.
-  - **Transforms data** according to that Zod schema. This includes stripping properties not defined in the schema, applying default values, or executing Zod `transform` functions if present.
-  - Throws a `ResponseValidationError` if validation fails, preventing invalid data from being sent.
-  - Sends the validated and potentially transformed data as a JSON response.
-  - Use this method to ensure strict adherence to the API contract and data integrity for each status code.
-
-Since `RouteContract.response` is mandatory, these methods are always available on the `res` object, typed according to the schemas provided for each status code.
+  - **Performs runtime validation** of `data` against the schema associated with `statusCode`.
+  - **Transforms data** according to that Zod schema (stripping extra fields, applying defaults, etc.).
+  - Throws a `ResponseValidationError` if validation fails.
+  - Use this method to ensure strict adherence to the API contract.
 
 ### Error Handling
 
@@ -185,13 +182,137 @@ Since `RouteContract.response` is mandatory, these methods are always available 
   - Typically results in a 400 Bad Request.
   - Contains `details` with the Zod error.
 - **`ResponseValidationError`**:
-  - Thrown by `res.sendValidated(statusCode, data)` if response data doesn't match the schema for the given `statusCode`.
+  - Thrown by `res.sendValidated(statusCode, data)` if response data doesn't match the schema.
   - Typically results in a 500 Internal Server Error.
   - Contains `details` with the Zod error.
 
 These errors are caught by ExpressKit's default error handling middleware.
 
-## Key Error Types
+---
 
-- `ValidationError`: For invalid request data.
-- `ResponseValidationError`: For invalid response data during `res.sendValidated()`.
+## Security Schemes for OpenAPI Documentation
+
+ExpressKit supports automatic generation of security requirements in OpenAPI documentation based on the authentication handlers used in your routes.
+
+### Features
+
+- **HOC Wrappers**: `withSecurityScheme` allows you to add security metadata to any authentication handler.
+- **Predefined Security Schemes**: Ready-to-use wrappers for common authentication types:
+  - `bearerAuth`: JWT/Bearer token authentication
+  - `apiKeyAuth`: API key authentication
+  - `basicAuth`: Basic authentication
+  - `oauth2Auth`: OAuth2 authentication
+  - `oidcAuth`: OpenID Connect authentication
+- **Automatic Documentation**: Security requirements are automatically included in OpenAPI documentation.
+
+### Basic Usage
+
+```typescript
+import {bearerAuth} from 'expresskit';
+import jwt from 'jsonwebtoken';
+
+// Add OpenAPI security scheme metadata to your auth handler
+const jwtAuthHandler = bearerAuth('myJwtAuth')(function authenticate(req, res, next) {
+  // Your authentication logic here
+  next();
+});
+
+// Use in routes
+const routes = {
+  'GET /api/protected': {
+    handler: protectedRouteHandler,
+    authHandler: jwtAuthHandler,
+  },
+};
+```
+
+### Available Security Scheme Types
+
+#### Bearer Token Authentication
+
+```typescript
+const jwtAuthHandler = bearerAuth(
+  'jwtAuth', // scheme name in OpenAPI docs
+  ['read:users', 'write:users'], // optional scopes
+)(authFunction);
+```
+
+#### API Key Authentication
+
+```typescript
+const apiKeyHandler = apiKeyAuth(
+  'apiKeyAuth', // scheme name
+  'header', // location: 'header', 'query', or 'cookie'
+  'X-API-Key', // parameter name
+  ['read', 'write'], // optional scopes
+)(authFunction);
+```
+
+#### Basic Authentication
+
+```typescript
+const basicAuthHandler = basicAuth(
+  'basicAuth', // scheme name
+  ['read', 'write'], // optional scopes
+)(authFunction);
+```
+
+#### OAuth2 Authentication
+
+```typescript
+const oauth2Handler = oauth2Auth(
+  'oauth2Auth', // scheme name
+  {
+    implicit: {
+      authorizationUrl: 'https://example.com/oauth/authorize',
+      scopes: {
+        read: 'Read access',
+        write: 'Write access',
+      },
+    },
+  },
+  ['read', 'write'], // optional scopes for this specific handler
+)(authFunction);
+```
+
+#### OpenID Connect Authentication
+
+```typescript
+const oidcHandler = oidcAuth(
+  'oidcAuth', // scheme name
+  'https://example.com/.well-known/openid-configuration',
+  ['profile', 'email'], // optional scopes
+)(authFunction);
+```
+
+### Custom Security Schemes
+
+If you need a custom security scheme, you can use the `withSecurityScheme` function directly:
+
+```typescript
+import {withSecurityScheme} from 'expresskit';
+
+const customAuthHandler = withSecurityScheme({
+  name: 'myCustomScheme',
+  scheme: {
+    type: 'http',
+    scheme: 'digest',
+    description: 'Digest authentication',
+  },
+  scopes: ['read', 'write'],
+})(authFunction);
+```
+
+### How It Works
+
+1. When you wrap an authentication handler with one of the security scheme HOCs, it registers the scheme definition.
+2. The router detects when a route uses an auth handler with a registered security scheme.
+3. The scheme is added to the OpenAPI components.securitySchemes section.
+4. A security requirement referencing the scheme is added to the route operation.
+
+### Best Practices
+
+1. **Consistent Naming**: Use consistent names for your security schemes.
+2. **Documentation**: Add descriptions to your security schemes to explain the required format.
+3. **Scopes**: When using OAuth2 or scoped tokens, be specific about which scopes are required for each endpoint.
+4. **Auth Policy**: The security requirement is only added if the route's auth policy is not disabled.
