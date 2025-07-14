@@ -1,6 +1,6 @@
 import {Request as ExpressRequest, Response} from 'express';
 import {ZodError, z} from 'zod/v4'; // Import ZodError
-import {SerializationError, ValidationError} from './errors';
+import {ResponseValidationError, ValidationError} from './errors';
 import {
     ContractRequest,
     ContractResponse,
@@ -11,12 +11,12 @@ import {
     WithApiTypeParams,
 } from './types';
 import {AppRouteHandler} from '../types';
-import {registerContract} from './contractRegistry';
+import {registerContract} from './contract-registry';
 
-export {ValidationError, SerializationError} from './errors';
-export {OpenApiRegistry} from './openapi-registry';
+export {ValidationError, ResponseValidationError as SerializationError} from './errors';
+export {OpenApiRegistry, createOpenApiRegistry} from './openapi-registry';
 export * from './types';
-export {getContract, getRouteContract, registerContract} from './contractRegistry';
+export {getContract, getRouteContract, registerContract} from './contract-registry';
 export {
     withSecurityScheme,
     getSecurityScheme,
@@ -26,7 +26,7 @@ export {
     basicAuth,
     oauth2Auth,
     oidcAuth,
-} from './securitySchemes';
+} from './security-schemes';
 
 export function withContract<TConfig extends RouteContract>(config: TConfig) {
     type Params = WithApiTypeParams<TConfig>;
@@ -151,7 +151,7 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
                 const result = schemaToValidate.safeParse(data);
 
                 if (!result.success) {
-                    throw new SerializationError(
+                    throw new ResponseValidationError(
                         `Invalid response data for status code ${String(statusCode)}`,
                         result.error,
                     );
@@ -199,21 +199,19 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
                             })),
                         });
                     }
-                } else if (error instanceof SerializationError) {
+                } else if (error instanceof ResponseValidationError) {
                     if (!expressRes.headersSent) {
                         expressRes.status(error.statusCode || 500).json({
                             error: 'Internal Server Error',
-                            code: 'RESPONSE_SERIALIZATION_FAILED',
+                            code: 'RESPONSE_VALIDATION_FAILED',
                         });
                     }
                 } else {
-                    // For any other errors, re-throw them to be handled by Express's general error handlers
                     throw error;
                 }
             }
         };
 
-        // Store in WeakMap
         registerContract(finalHandler, config);
 
         return finalHandler;

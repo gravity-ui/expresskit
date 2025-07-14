@@ -11,7 +11,7 @@ import {setupParsers} from './parsers';
 import {setupRoutes} from './router';
 import type {AppRoutes} from './types';
 import {setupLangMiddleware} from './lang/lang-middleware';
-import {OpenApiRegistry} from './validator';
+import {OpenApiRegistry, createOpenApiRegistry} from './validator';
 
 const DEFAULT_PORT = 3030;
 
@@ -29,7 +29,7 @@ export class ExpressKit {
         this.express = express();
 
         if (this.config.openApiRegistry?.enabled) {
-            this.openapiRegistry = new OpenApiRegistry(this.config.openApiRegistry);
+            this.openapiRegistry = createOpenApiRegistry(this.config.openApiRegistry);
         }
 
         this.express.disable('x-powered-by');

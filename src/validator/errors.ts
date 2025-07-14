@@ -12,13 +12,13 @@ export class ValidationError extends Error {
     }
 }
 
-export class SerializationError extends Error {
+export class ResponseValidationError extends Error {
     statusCode: number;
     details: ZodError | unknown;
 
     constructor(message: string, details?: ZodError | unknown, statusCode = 500) {
         super(message);
-        this.name = 'SerializationError';
+        this.name = 'ResponseValidationError';
         this.statusCode = statusCode;
         this.details = details;
     }

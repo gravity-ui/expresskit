@@ -12,7 +12,7 @@ import {
 } from '..';
 import {NodeKit} from '@gravity-ui/nodekit';
 import type {Application as ExpressApplication} from 'express';
-import {getSecurityScheme} from '../validator/securitySchemes';
+import {getSecurityScheme} from '../validator/security-schemes';
 
 const ErrorSchema = z.object({
     error: z.string(),
