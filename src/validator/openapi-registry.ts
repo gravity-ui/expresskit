@@ -181,18 +181,27 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
                 if (route.config.response) {
                     Object.entries(route.config.response.content).forEach(
                         ([statusCode, responseDef]) => {
-                            const schema = z.toJSONSchema(responseDef.schema);
-                            const contentType =
-                                route.config.response?.contentType || 'application/json';
-                            (operation.responses as Record<string, unknown>)[statusCode] = {
+                            // Create the response object with description
+                            const responseObject: Record<string, unknown> = {
                                 description:
                                     responseDef.description || getResponseDescription(statusCode),
-                                content: {
+                            };
+
+                            // Only add content if there is a schema and it's not a 204 response
+                            if (responseDef.schema && statusCode !== '204') {
+                                const schema = z.toJSONSchema(responseDef.schema);
+                                const contentType =
+                                    route.config.response?.contentType || 'application/json';
+
+                                responseObject.content = {
                                     [contentType]: {
                                         schema,
                                     },
-                                },
-                            };
+                                };
+                            }
+
+                            (operation.responses as Record<string, unknown>)[statusCode] =
+                                responseObject;
                         },
                     );
                 } else {

@@ -340,6 +340,42 @@ const securedController = withContract(SecuredRouteContract)(async (_req, res) =
     });
 });
 
+// Add a new contract for testing schema-less responses
+const NoContentRouteContract = {
+    name: 'NoContentAPI',
+    response: {
+        content: {
+            204: {
+                // No schema provided for this response
+                description: 'Resource deleted successfully, no content returned.',
+            },
+            200: {
+                schema: z.object({message: z.string()}),
+                description: 'Operation completed with content.',
+            },
+        },
+    },
+} satisfies RouteContract;
+
+// Controller to test schema-less responses
+const noContentController = withContract({
+    ...NoContentRouteContract,
+    request: {
+        query: z.object({
+            returnContent: z.string().optional(),
+        }),
+    },
+})(async (req, res) => {
+    const returnContent = req.query.returnContent === 'true';
+
+    if (returnContent) {
+        res.sendTyped(200, {message: 'Operation completed successfully'});
+    } else {
+        // This should not send any content in the response body
+        res.sendTyped(204);
+    }
+});
+
 describe('withContract', () => {
     let app: ExpressApplication;
     let nodekit: NodeKit;
@@ -365,6 +401,7 @@ describe('withContract', () => {
             'GET /serialize-test': {handler: serializeController},
             'GET /serialize-nested-test': {handler: serializeNestedController},
             'POST /error-structure-test': {handler: rejectInvalidController},
+            'GET /no-content-test': {handler: noContentController},
             'POST /custom-content-type': {
                 handler: withContract({
                     request: {
@@ -494,7 +531,6 @@ describe('withContract', () => {
             expect(response.status).toBe(400);
             expect(response.body.error).toBe('Invalid request data');
             expect(response.body.issues).toBeInstanceOf(Array);
-            // Check for the presence of the specific error message, regardless of order
             expect(response.body.issues).toEqual(
                 expect.arrayContaining([
                     expect.objectContaining({message: 'Too small: expected number to be >=1'}),
@@ -563,7 +599,6 @@ describe('withContract', () => {
             expect(response.body).toHaveProperty('issues');
             expect(response.body.issues).toBeInstanceOf(Array);
             expect(response.body.issues.length).toBeGreaterThan(0);
-            // Check for the presence of the specific error path, regardless of order
             expect(response.body.issues).toEqual(
                 expect.arrayContaining([expect.objectContaining({path: ['body', 'value']})]),
             );
@@ -596,24 +631,20 @@ describe('withContract', () => {
 
     describe('Security Schemes', () => {
         it('should protect routes with bearer token authentication', async () => {
-            // Test without token (should fail)
             const unauthorizedResponse = await request(app).get('/secured-resource').expect(401);
             expect(unauthorizedResponse.body).toHaveProperty('error');
 
-            // Test with invalid token (should fail)
             const invalidTokenResponse = await request(app)
                 .get('/secured-resource')
                 .set('Authorization', 'Bearer invalid-token')
                 .expect(401);
             expect(invalidTokenResponse.body).toHaveProperty('error');
 
-            // Test with valid token (should succeed)
             const authorizedResponse = await request(app)
                 .get('/secured-resource')
                 .set('Authorization', 'Bearer valid-token')
                 .expect(200);
 
-            // Validate response matches schema
             expect(authorizedResponse.body).toEqual({
                 resourceId: 'resource-123',
                 name: 'Protected Resource',
@@ -622,16 +653,31 @@ describe('withContract', () => {
         });
 
         it('should properly register security scheme for OpenAPI documentation', () => {
-            // Verify that the security scheme was correctly registered with the auth handler
             const scheme = getSecurityScheme(bearerAuthHandler);
 
             expect(scheme).toBeDefined();
             expect(scheme?.name).toBe('bearerAuth');
             expect(scheme?.scheme.type).toBe('http');
             expect(scheme?.scheme.scheme).toBe('bearer');
+        });
+    });
 
-            // The OpenAPI registry in ExpressKit would use this information
-            // to generate the security schemes section in the OpenAPI document
+    describe('Schema-less Responses', () => {
+        it('should handle 204 No Content response without a schema', async () => {
+            const response = await request(app).get('/no-content-test').expect(204);
+
+            expect(response.body).toEqual({});
+            expect(response.text).toBe('');
+        });
+
+        it('should still handle normal responses with schemas in the same contract', async () => {
+            const response = await request(app)
+                .get('/no-content-test?returnContent=true')
+                .expect(200);
+
+            expect(response.body).toEqual({
+                message: 'Operation completed successfully',
+            });
         });
     });
 });

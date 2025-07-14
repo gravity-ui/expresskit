@@ -226,7 +226,6 @@ const DeleteItemConfig = {
     response: {
         content: {
             204: {
-                schema: z.undefined(),
                 description: 'Item deleted successfully, no content returned.',
             },
             404: {
@@ -240,7 +239,7 @@ const DeleteItemConfig = {
 const deleteItemHandler = withContract(DeleteItemConfig)(async (req, res) => {
     const {itemId} = req.params;
     console.log(`Deleting item ${itemId}`);
-    res.sendTyped(204, undefined);
+    res.sendTyped(204);
 });
 
 // Example 5: GET Items (List of Nested Objects)
@@ -290,6 +289,56 @@ const getItemsHandler = withContract(GetItemsConfig)(async (req, res) => {
     res.sendValidated(200, itemsData);
 });
 
+// Example 6: Status Check with various responses including schema-less ones
+const StatusCheckConfig = {
+    operationId: 'statusCheck',
+    summary: 'Check the status of the API',
+    tags: ['System'],
+    response: {
+        content: {
+            200: {
+                schema: z.object({
+                    status: z.literal('ok'),
+                    version: z.string(),
+                    uptime: z.number(),
+                }),
+                description: 'API is functioning normally',
+            },
+            503: {
+                // No schema for 503 - schema-less response
+                description: 'Service unavailable',
+            },
+            500: {
+                // No schema for 500 - schema-less response
+                description: 'Internal server error',
+            },
+        },
+    },
+} satisfies RouteContract;
+
+const statusCheckHandler = withContract(StatusCheckConfig)((_, res) => {
+    // Simulate different statuses based on a random number
+    const random = Math.random();
+
+    if (random < 0.1) {
+        res.sendTyped(503);
+        return;
+    }
+
+    if (random < 0.2) {
+        // Internal error response - no body needed
+        res.sendTyped(500);
+        return;
+    }
+
+    // Normal response with schema-validated body
+    res.sendTyped(200, {
+        status: 'ok',
+        version: '1.0.0',
+        uptime: process.uptime(),
+    });
+});
+
 // Setup ExpressKit Application
 export const exampleRoutes: AppRoutes = {
     'GET /users/:userId': {
@@ -313,6 +362,7 @@ export const exampleRoutes: AppRoutes = {
         authPolicy: AuthPolicy.required,
     },
     'GET /items': getItemsHandler,
+    'GET /status': statusCheckHandler,
 };
 
 const nodekit = new NodeKit({
@@ -353,3 +403,4 @@ console.log('  DELETE /items/123e4567-e89b-12d3-a456-426614174000');
 console.log('    Header: X-API-Key: valid_api_key');
 console.log('  GET /items (public route, no authentication required)');
 console.log('  GET /items?limit=3&includeDetails=false');
+console.log('  GET /status (check API status)');

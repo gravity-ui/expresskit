@@ -5,6 +5,7 @@ import {
     ContractRequest,
     ContractResponse,
     Exact,
+    ExtractSchemaFromResponseDef,
     InferDataFromResponseDef,
     IsManualValidation,
     RouteContract,
@@ -133,21 +134,43 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
 
             enhancedRes.sendTyped = function <
                 S extends keyof TConfig['response']['content'],
-                D extends InferDataFromResponseDef<TConfig['response']['content'][S]>,
+                D extends InferDataFromResponseDef<
+                    TConfig['response']['content'][S]
+                > = InferDataFromResponseDef<TConfig['response']['content'][S]>,
             >(
                 statusCode: S,
-                data: Exact<InferDataFromResponseDef<TConfig['response']['content'][S]>, D>,
+                data?: ExtractSchemaFromResponseDef<TConfig['response']['content'][S]> extends never
+                    ? undefined
+                    : Exact<InferDataFromResponseDef<TConfig['response']['content'][S]>, D>,
             ): void {
-                expressRes.status(statusCode as number).json(data);
+                expressRes.status(statusCode as number);
+
+                // If there's no schema defined for this status code, or it's a 204, or data is undefined, don't send content
+                const hasSchema =
+                    config.response.content[statusCode as number]?.schema !== undefined;
+                if (!hasSchema || statusCode === 204 || data === undefined) {
+                    expressRes.end();
+                } else {
+                    expressRes.json(data);
+                }
             };
 
             enhancedRes.sendValidated = function <S extends keyof TConfig['response']['content']>(
                 statusCode: S,
-                data: InferDataFromResponseDef<TConfig['response']['content'][S]>,
+                data?: ExtractSchemaFromResponseDef<TConfig['response']['content'][S]> extends never
+                    ? undefined
+                    : InferDataFromResponseDef<TConfig['response']['content'][S]>,
             ): void {
                 const responseDef = config.response.content[statusCode as number];
-
                 const schemaToValidate = responseDef.schema;
+
+                expressRes.status(statusCode as number);
+
+                if (!schemaToValidate || statusCode === 204) {
+                    expressRes.end();
+                    return;
+                }
+
                 const result = schemaToValidate.safeParse(data);
 
                 if (!result.success) {
@@ -156,7 +179,7 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
                         result.error,
                     );
                 }
-                expressRes.status(statusCode as number).json(result.data);
+                expressRes.json(result.data);
             };
 
             try {

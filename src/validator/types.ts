@@ -119,30 +119,37 @@ export interface BaseContractResponse extends Response {
 }
 
 // Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.response.content
-export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema: infer S} // Simplified: TDef is always an object with a schema
+export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema?: infer S}
     ? S extends z.ZodType
         ? S
         : never
     : never;
 
 // Helper to infer data type from a response definition - EXPORT THIS
-export type InferDataFromResponseDef<TDef> = z.infer<ExtractSchemaFromResponseDef<TDef>>;
+export type InferDataFromResponseDef<TDef> =
+    ExtractSchemaFromResponseDef<TDef> extends never
+        ? undefined
+        : z.infer<ExtractSchemaFromResponseDef<TDef>>;
 
 // Interface for the response methods that will be typed based on ApiRouteConfig['response']['content']
-interface TypedResponseMethods<TContent extends Record<number, {schema: z.ZodType}>> {
+interface TypedResponseMethods<TContent extends Record<number, {schema?: z.ZodType}>> {
     // Status code key is number
     sendTyped: <
         S extends keyof TContent, // S is the status code (number)
         // D is the actual data type being passed, constrained by the schema for status code S
-        D extends InferDataFromResponseDef<TContent[S]>,
+        D extends InferDataFromResponseDef<TContent[S]> = InferDataFromResponseDef<TContent[S]>,
     >(
         statusCode: S,
-        data: Exact<InferDataFromResponseDef<TContent[S]>, D>,
+        data?: ExtractSchemaFromResponseDef<TContent[S]> extends never
+            ? undefined
+            : Exact<InferDataFromResponseDef<TContent[S]>, D>,
     ) => void;
 
     sendValidated: <S extends keyof TContent>(
         statusCode: S, // S is the status code (number)
-        data: InferDataFromResponseDef<TContent[S]>, // Exact not always needed for serialize, but good for consistency
+        data?: ExtractSchemaFromResponseDef<TContent[S]> extends never
+            ? undefined
+            : InferDataFromResponseDef<TContent[S]>, // Exact not always needed for serialize, but good for consistency
     ) => void;
 }
 
@@ -162,7 +169,7 @@ export interface RouteContract {
     };
     response: {
         contentType?: string;
-        content: Record<number, {schema: z.ZodType; description?: string}>;
+        content: Record<number, {schema?: z.ZodType; description?: string}>;
     };
 }
 
