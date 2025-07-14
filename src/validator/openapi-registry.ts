@@ -1,0 +1,238 @@
+import type {OpenApiRegistryConfig, OpenApiSchemaObject, SecuritySchemeObject} from './types';
+
+import {RouteContract} from './types';
+import {z} from 'zod/v4';
+import {AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
+import {getRouteContract} from './contract-registry';
+import {getSecurityScheme} from './security-schemes';
+
+interface RegisteredRoute {
+    path: string;
+    method: string;
+    config: RouteContract;
+    security?: Array<Record<string, string[]>>;
+}
+
+/**
+ * Creates an OpenAPI registry that manages routes and security schemes
+ * for generating OpenAPI documentation.
+ *
+ * @param config - Configuration for the OpenAPI registry
+ * @returns An object with methods to register routes, security schemes, and generate the OpenAPI schema
+ */
+export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
+    // Private state
+    const routes: RegisteredRoute[] = [];
+    const securitySchemes: Record<string, SecuritySchemeObject> = {};
+    let cachedSchema: OpenApiSchemaObject | null = null;
+
+    function getResponseDescription(statusCode: string): string {
+        const descriptions: Record<string, string> = {
+            '200': 'Successful response',
+            '201': 'Created successfully',
+            '204': 'No content',
+            '400': 'Bad request',
+            '401': 'Unauthorized',
+            '403': 'Forbidden',
+            '404': 'Not found',
+            '422': 'Validation error',
+            '500': 'Internal server error',
+        };
+        return descriptions[statusCode] || 'Response';
+    }
+
+    // Return the public API
+    return {
+        registerSecurityScheme(name: string, scheme: SecuritySchemeObject): void {
+            securitySchemes[name] = scheme;
+            cachedSchema = null;
+        },
+
+        registerRoute(
+            method: HttpMethod,
+            routePath: string,
+            routeHandler: AppRouteHandler,
+            authHandler?: AppMiddleware,
+        ): void {
+            const apiConfig = getRouteContract(routeHandler);
+            if (!apiConfig) return;
+
+            const security = [];
+
+            if (authHandler) {
+                const securityScheme = getSecurityScheme(authHandler);
+
+                if (securityScheme) {
+                    this.registerSecurityScheme(securityScheme.name, securityScheme.scheme);
+
+                    security.push({
+                        [securityScheme.name]: securityScheme.scopes || [],
+                    });
+                }
+            }
+
+            const openApiPath = routePath.replace(/\/:([^/]+)/g, '/{$1}');
+            routes.push({
+                path: openApiPath,
+                method: method.toLowerCase(),
+                config: apiConfig,
+                security: security.length > 0 ? security : undefined,
+            });
+            cachedSchema = null;
+        },
+
+        /**
+         * Generates and returns the OpenAPI schema based on registered routes and security schemes
+         *
+         * @returns The OpenAPI schema object
+         */
+        getOpenApiSchema(): OpenApiSchemaObject {
+            if (cachedSchema) {
+                return cachedSchema;
+            }
+
+            const openApiSchema = {
+                openapi: '3.0.3',
+                info: {
+                    title: config.title || 'API Documentation',
+                    version: config.version || '1.0.0',
+                    description: config.description || 'Generated API documentation',
+                },
+                servers: config.servers || [{url: 'http://localhost:3030'}],
+                paths: {} as Record<string, Record<string, unknown>>,
+                components: {
+                    schemas: {} as Record<string, unknown>,
+                    securitySchemes: securitySchemes,
+                },
+            };
+
+            // Process each registered route
+            routes.forEach((route) => {
+                const pathItem = openApiSchema.paths[route.path] || {};
+
+                const operation: Record<string, unknown> = {
+                    summary: route.config.summary,
+                    description: route.config.description,
+                    tags: route.config.tags,
+                    parameters: [],
+                    responses: {},
+                };
+
+                // Add security requirements if present
+                if (route.security && route.security.length > 0) {
+                    operation.security = route.security;
+                }
+
+                // Add query parameters
+                if (route.config.request?.query) {
+                    const querySchema = z.toJSONSchema(route.config.request.query);
+
+                    if (querySchema.type === 'object' && querySchema.properties) {
+                        Object.entries(querySchema.properties).forEach(([name, schema]) => {
+                            (operation.parameters as Record<string, unknown>[]).push({
+                                name,
+                                in: 'query',
+                                required:
+                                    (querySchema as {required?: string[]}).required?.includes(
+                                        name,
+                                    ) || false,
+                                schema,
+                            });
+                        });
+                    }
+                }
+
+                // Add path parameters
+                if (route.config.request?.params) {
+                    const paramsSchema = z.toJSONSchema(route.config.request.params);
+                    if (paramsSchema.type === 'object' && paramsSchema.properties) {
+                        Object.entries(paramsSchema.properties).forEach(([name, schema]) => {
+                            (operation.parameters as Record<string, unknown>[]).push({
+                                name,
+                                in: 'path',
+                                required: true,
+                                schema,
+                            });
+                        });
+                    }
+                }
+
+                // Add request body for methods that support it
+                if (['post', 'put', 'patch'].includes(route.method) && route.config.request?.body) {
+                    const bodySchema = z.toJSONSchema(route.config.request.body);
+                    const contentTypes = route.config.request?.contentType || ['application/json'];
+                    const content = contentTypes.reduce(
+                        (acc, type) => {
+                            acc[type] = {
+                                schema: bodySchema,
+                            };
+                            return acc;
+                        },
+                        {} as Record<string, {schema: unknown}>,
+                    );
+
+                    operation.requestBody = {
+                        required: true,
+                        content,
+                    };
+                }
+
+                // Add responses
+                if (route.config.response) {
+                    Object.entries(route.config.response.content).forEach(
+                        ([statusCode, responseDef]) => {
+                            // Create the response object with description
+                            const responseObject: Record<string, unknown> = {
+                                description:
+                                    responseDef.description || getResponseDescription(statusCode),
+                            };
+
+                            // Only add content if there is a schema and it's not a 204 response
+                            if (responseDef.schema && statusCode !== '204') {
+                                const schema = z.toJSONSchema(responseDef.schema);
+                                const contentType =
+                                    route.config.response?.contentType || 'application/json';
+
+                                responseObject.content = {
+                                    [contentType]: {
+                                        schema,
+                                    },
+                                };
+                            }
+
+                            (operation.responses as Record<string, unknown>)[statusCode] =
+                                responseObject;
+                        },
+                    );
+                } else {
+                    // Default response if none specified
+                    (operation.responses as Record<string, unknown>)['200'] = {
+                        description: 'Successful response',
+                        content: {
+                            'application/json': {
+                                schema: {type: 'object'},
+                            },
+                        },
+                    };
+                }
+
+                pathItem[route.method] = operation;
+                openApiSchema.paths[route.path] = pathItem;
+            });
+
+            cachedSchema = openApiSchema;
+
+            return openApiSchema;
+        },
+
+        reset(): void {
+            routes.length = 0;
+            Object.keys(securitySchemes).forEach((key) => {
+                delete securitySchemes[key];
+            });
+            cachedSchema = null;
+        },
+    };
+}
+
+export type OpenApiRegistry = ReturnType<typeof createOpenApiRegistry>;
