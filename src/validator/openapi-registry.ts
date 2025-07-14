@@ -1,4 +1,5 @@
-import type {OpenApiRegistryConfig, SecuritySchemeObject} from './types';
+import type {OpenApiRegistryConfig, OpenApiSchemaObject, SecuritySchemeObject} from './types';
+
 import {RouteContract} from './types';
 import {z} from 'zod/v4';
 import {AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
@@ -16,6 +17,7 @@ export class OpenApiRegistry {
     private config: OpenApiRegistryConfig;
     private routes: RegisteredRoute[] = [];
     private securitySchemes: Record<string, SecuritySchemeObject> = {};
+    private cachedSchema: OpenApiSchemaObject | null = null;
 
     constructor(config: OpenApiRegistryConfig) {
         this.config = config;
@@ -23,6 +25,7 @@ export class OpenApiRegistry {
 
     registerSecurityScheme(name: string, scheme: SecuritySchemeObject): void {
         this.securitySchemes[name] = scheme;
+        this.cachedSchema = null;
     }
 
     registerRoute(
@@ -55,9 +58,14 @@ export class OpenApiRegistry {
             config: apiConfig,
             security: security.length > 0 ? security : undefined,
         });
+        this.cachedSchema = null;
     }
 
-    getOpenApiSchema() {
+    getOpenApiSchema(): OpenApiSchemaObject {
+        if (this.cachedSchema) {
+            return this.cachedSchema;
+        }
+
         const openApiSchema = {
             openapi: '3.0.3',
             info: {
@@ -176,6 +184,8 @@ export class OpenApiRegistry {
             pathItem[route.method] = operation;
             openApiSchema.paths[route.path] = pathItem;
         });
+
+        this.cachedSchema = openApiSchema;
 
         return openApiSchema;
     }

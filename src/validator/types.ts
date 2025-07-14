@@ -64,6 +64,25 @@ export interface OpenApiRegistryConfig {
     }[];
 }
 
+// Define a type that matches what swagger-ui-express expects
+export interface OpenApiSchemaObject {
+    openapi: string;
+    info: {
+        title: string;
+        version: string;
+        description?: string;
+        [key: string]: unknown;
+    };
+    servers?: Array<{url: string; [key: string]: unknown}>;
+    paths: Record<string, Record<string, unknown>>;
+    components?: {
+        schemas?: Record<string, unknown>;
+        securitySchemes?: Record<string, SecuritySchemeObject>;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
+
 // Utility type to ensure TProvided is exactly TExpected.
 export type Exact<TExpected, TProvided extends TExpected> =
     Exclude<keyof TProvided, keyof TExpected> extends never
