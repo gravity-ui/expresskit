@@ -82,6 +82,24 @@ const createTaskHandler = withContract(CreateTaskConfig)(async (req, res) => {
   res.sendValidated(201, newTask);
 });
 
+// Example with manual validation
+const manualValidationHandler = withContract(CreateTaskConfig, {
+  manualValidation: true,
+})(async (req, res) => {
+  // Need to manually validate since manualValidation is true
+  const {body} = await req.validate();
+  const {name, description} = body;
+
+  const newTask = {
+    id: 'task_' + Date.now(),
+    name,
+    description,
+    createdAt: new Date().toISOString(),
+  };
+
+  res.sendValidated(201, newTask);
+});
+
 // Integrate with your Express/ExpressKit routes
 const routes: AppRoutes = {
   'POST /tasks': createTaskHandler,
@@ -104,7 +122,7 @@ const app = new ExpressKit(nodekit, routes);
 
 The primary tool is the `withContract` higher-order function, which wraps Express route handlers to add validation, serialization, and type safety based on Zod schemas.
 
-### `withContract(config)(handler)`
+### `withContract(config, settings?)(handler)`
 
 - **`config` (`RouteContract`)**: An object to configure validation behavior and OpenAPI documentation.
 
@@ -115,7 +133,6 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
     summary?: string; // Short summary for OpenAPI
     description?: string; // Detailed description for OpenAPI
     tags?: string[]; // Tags for grouping (e.g., for OpenAPI)
-    manualValidation?: boolean; // Default: false. If true, call req.validate() manually.
     request?: {
       contentType?: string | string[]; // Allowed request content types. Default: 'application/json'
       body?: z.ZodType<any>; // Schema for req.body
@@ -137,13 +154,17 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
   }
   ```
 
+- **`settings`**: Optional settings for the contract.
+
+  ```typescript
+  interface WithContractSettings {
+    manualValidation?: boolean; // Default: false. If true, call req.validate() manually.
+  }
+  ```
+
   Key properties:
 
   - `manualValidation`: Set to `true` to disable automatic request validation.
-  - `request`: Define Zod schemas for `body`, `params`, `query`, `headers`, and specify allowed `contentType`.
-  - `response`: (Mandatory) An object containing:
-    - `content`: A record where keys are HTTP status codes (e.g., `200`, `201`, `400`) and values are objects containing a `schema` (Zod schema for the response body) and an optional `description`.
-    - `contentType`: An optional string to set the `Content-Type` header for all responses. Defaults to `application/json`.
 
 - **`handler(req, res)`**: Your Express route handler, receiving enhanced `req` and `res` objects.
 

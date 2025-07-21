@@ -179,7 +179,6 @@ const UpdateUserEmailConfig = {
     operationId: 'updateUserEmail',
     summary: "Update a user's email address",
     tags: ['Users'],
-    manualValidation: true,
     request: {
         params: z.object({userId: z.uuid()}),
         body: z
@@ -206,7 +205,9 @@ const UpdateUserEmailConfig = {
     },
 } satisfies RouteContract;
 
-const updateUserEmailHandler = withContract(UpdateUserEmailConfig)(async (req, res) => {
+const updateUserEmailHandler = withContract(UpdateUserEmailConfig, {
+    manualValidation: true,
+})(async (req, res) => {
     const {params, body} = await req.validate();
 
     res.sendTyped(200, {

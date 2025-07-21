@@ -9,7 +9,8 @@ import {
     InferDataFromResponseDef,
     IsManualValidation,
     RouteContract,
-    WithApiTypeParams,
+    WithContractSettings,
+    WithContractTypeParams,
 } from './types';
 import {AppRouteHandler} from '../types';
 import {registerContract} from './contract-registry';
@@ -29,9 +30,12 @@ export {
     oidcAuth,
 } from './security-schemes';
 
-export function withContract<TConfig extends RouteContract>(config: TConfig) {
-    type Params = WithApiTypeParams<TConfig>;
-    type IsManualActual = IsManualValidation<TConfig>;
+export function withContract<
+    TConfig extends RouteContract,
+    TSettings extends WithContractSettings | undefined = undefined,
+>(config: TConfig, settings?: TSettings) {
+    type Params = WithContractTypeParams<TConfig, TSettings>;
+    type IsManualActual = IsManualValidation<TSettings>;
 
     const requestShape: Record<string, z.ZodType> = {};
     if (config.request?.body) {
@@ -198,7 +202,7 @@ export function withContract<TConfig extends RouteContract>(config: TConfig) {
                 }
 
                 // Automatically validate request parts unless manual validation is specified
-                if (config.manualValidation !== true) {
+                if (settings?.manualValidation !== true) {
                     const validatedData = await enhancedReq.validate();
                     // Assign validated data using type assertions to satisfy the conditional types
                     (enhancedReq as {body: Params['TBody']}).body = validatedData.body;

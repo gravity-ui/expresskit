@@ -159,7 +159,6 @@ export interface RouteContract {
     summary?: string;
     description?: string;
     tags?: string[];
-    manualValidation?: boolean;
     request?: {
         body?: z.ZodType;
         params?: z.ZodType;
@@ -173,12 +172,17 @@ export interface RouteContract {
     };
 }
 
+export interface WithContractSettings {
+    manualValidation?: boolean;
+}
+
 export type InferZodType<T extends z.ZodType | undefined> = T extends z.ZodType
     ? z.infer<T>
     : unknown;
 
-export type WithApiTypeParams<
+export type WithContractTypeParams<
     TConfig extends RouteContract,
+    TSettings extends WithContractSettings | undefined = undefined,
     TBodySchema extends z.ZodType = TConfig['request'] extends {body: infer U}
         ? U extends z.ZodType
             ? U
@@ -204,7 +208,7 @@ export type WithApiTypeParams<
     TQuery = InferZodType<TQuerySchema>,
     THeaders = InferZodType<THeadersSchema>,
 > = {
-    IsManualActual: TConfig['manualValidation'] extends true ? true : false;
+    IsManualActual: IsManualValidation<TSettings>;
     TBody: TBody;
     TParams: TParams;
     TQuery: TQuery;
@@ -212,12 +216,18 @@ export type WithApiTypeParams<
 };
 
 // Helper type for getting the manual validation status
-export type IsManualValidation<TConfig extends RouteContract> =
-    TConfig['manualValidation'] extends true ? true : false;
+export type IsManualValidation<
+    // We don't need the TConfig parameter anymore since manualValidation is in settings
+    TSettings extends WithContractSettings | undefined = undefined,
+> = TSettings extends {manualValidation: true} ? true : false;
 
 export type ApiHandler<
     TConfig extends RouteContract,
-    P extends WithApiTypeParams<TConfig> = WithApiTypeParams<TConfig>,
+    TSettings extends WithContractSettings | undefined = undefined,
+    P extends WithContractTypeParams<TConfig, TSettings> = WithContractTypeParams<
+        TConfig,
+        TSettings
+    >,
 > = (
     req: ContractRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
     res: ContractResponse<TConfig>,

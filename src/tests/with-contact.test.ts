@@ -103,7 +103,6 @@ const ManualValidationBodySchema = z.object({
 });
 const ManualValidationRouteContract = {
     name: 'ManualValidationAPI',
-    manualValidation: true, // Key for this test
     request: {
         body: ManualValidationBodySchema,
     },
@@ -114,9 +113,11 @@ const ManualValidationRouteContract = {
         },
     },
 } satisfies RouteContract;
-const manualValidationController = withContract(ManualValidationRouteContract)(async (req, res) => {
+const manualValidationController = withContract(ManualValidationRouteContract, {
+    manualValidation: true,
+})(async (req, res) => {
     // Manually trigger validation.
-    // If validation fails, withApi middleware is expected to catch the ZodError
+    // If validation fails, withContract middleware is expected to catch the ZodError
     // and automatically send a 400 response.
     // If successful, req.validate() returns the validated data parts (body, params, query, headers).
     const {body: validatedData} = await req.validate();
