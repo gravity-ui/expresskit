@@ -149,10 +149,10 @@ export function withContract<
             ): void {
                 expressRes.status(statusCode as number);
 
-                // If there's no schema defined for this status code, or it's a 204, or data is undefined, don't send content
+                // If there's no schema defined for this status code or data is undefined, don't send content
                 const hasSchema =
                     config.response.content[statusCode as number]?.schema !== undefined;
-                if (!hasSchema || statusCode === 204 || data === undefined) {
+                if (!hasSchema || data === undefined) {
                     expressRes.end();
                 } else {
                     expressRes.json(data);
@@ -170,7 +170,7 @@ export function withContract<
 
                 expressRes.status(statusCode as number);
 
-                if (!schemaToValidate || statusCode === 204) {
+                if (!schemaToValidate) {
                     expressRes.end();
                     return;
                 }

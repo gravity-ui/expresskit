@@ -6,13 +6,6 @@ import {AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
 import {getRouteContract} from './contract-registry';
 import {getSecurityScheme} from './security-schemes';
 
-interface RegisteredRoute {
-    path: string;
-    method: string;
-    config: RouteContract;
-    security?: Array<Record<string, string[]>>;
-}
-
 /**
  * Creates an OpenAPI registry that manages routes and security schemes
  * for generating OpenAPI documentation.
@@ -21,10 +14,28 @@ interface RegisteredRoute {
  * @returns An object with methods to register routes, security schemes, and generate the OpenAPI schema
  */
 export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
-    // Private state
-    const routes: RegisteredRoute[] = [];
-    const securitySchemes: Record<string, SecuritySchemeObject> = {};
-    let cachedSchema: OpenApiSchemaObject | null = null;
+    const openApiSchema: OpenApiSchemaObject = {
+        openapi: '3.0.3',
+        info: {
+            title: config.title || 'API Documentation',
+            version: config.version || '1.0.0',
+            description: config.description || 'Generated API documentation',
+        },
+        servers: config.servers || [{url: 'http://localhost:3030'}],
+        paths: {},
+        components: {
+            schemas: {},
+            securitySchemes: {},
+        },
+    };
+
+    if (config.contact) {
+        openApiSchema.info.contact = config.contact;
+    }
+
+    if (config.license) {
+        openApiSchema.info.license = config.license;
+    }
 
     function getResponseDescription(statusCode: string): string {
         const descriptions: Record<string, string> = {
@@ -41,11 +52,89 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
         return descriptions[statusCode] || 'Response';
     }
 
-    // Return the public API
+    // Helper function to create parameters for an operation
+    function createParameters(
+        paramType: 'query' | 'path',
+        schema: z.ZodType,
+        alwaysRequired = false,
+    ): Record<string, unknown>[] {
+        const jsonSchema = z.toJSONSchema(schema);
+        if (jsonSchema.type !== 'object' || !jsonSchema.properties) return [];
+
+        const required = (jsonSchema.required as string[]) || [];
+
+        return Object.entries(jsonSchema.properties).map(([name, property]) => ({
+            name,
+            in: paramType,
+            required: alwaysRequired || required.includes(name),
+            schema: property,
+        }));
+    }
+
+    // Helper function to create a request body
+    function createRequestBody(
+        bodySchema: z.ZodType,
+        contentTypes: string[] = ['application/json'],
+    ): Record<string, unknown> {
+        const schema = z.toJSONSchema(bodySchema);
+        const content = contentTypes.reduce(
+            (acc, type) => {
+                acc[type] = {schema};
+                return acc;
+            },
+            {} as Record<string, {schema: unknown}>,
+        );
+
+        return {required: true, content};
+    }
+
+    // Helper function to create responses
+    function createResponses(responseConfig?: RouteContract['response']): Record<string, unknown> {
+        const responses: Record<string, unknown> = {};
+
+        if (!responseConfig) {
+            // Default response if none specified
+            responses['200'] = {
+                description: 'Successful response',
+                content: {
+                    'application/json': {
+                        schema: {type: 'object'},
+                    },
+                },
+            };
+            return responses;
+        }
+
+        const defaultContentType = responseConfig.contentType || 'application/json';
+
+        Object.entries(responseConfig.content).forEach(([statusCode, responseDef]) => {
+            const responseObject: Record<string, unknown> = {
+                description: responseDef.description || getResponseDescription(statusCode),
+            };
+
+            // Only add content if there is a schema response
+            if (responseDef.schema) {
+                responseObject.content = {
+                    [defaultContentType]: {
+                        schema: z.toJSONSchema(responseDef.schema),
+                    },
+                };
+            }
+
+            responses[statusCode] = responseObject;
+        });
+
+        return responses;
+    }
+
     return {
         registerSecurityScheme(name: string, scheme: SecuritySchemeObject): void {
-            securitySchemes[name] = scheme;
-            cachedSchema = null;
+            if (openApiSchema.components) {
+                if (!openApiSchema.components.securitySchemes) {
+                    openApiSchema.components.securitySchemes = {};
+                }
+                openApiSchema.components.securitySchemes[name] = scheme;
+            }
         },
 
         registerRoute(
@@ -58,179 +147,79 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
             if (!apiConfig) return;
 
             const security = [];
-
             if (authHandler) {
                 const securityScheme = getSecurityScheme(authHandler);
-
                 if (securityScheme) {
                     this.registerSecurityScheme(securityScheme.name, securityScheme.scheme);
-
                     security.push({
                         [securityScheme.name]: securityScheme.scopes || [],
                     });
                 }
             }
 
+            // Convert Express path to OpenAPI path
             const openApiPath = routePath.replace(/\/:([^/]+)/g, '/{$1}');
-            routes.push({
-                path: openApiPath,
-                method: method.toLowerCase(),
-                config: apiConfig,
-                security: security.length > 0 ? security : undefined,
-            });
-            cachedSchema = null;
+
+            const pathItem = openApiSchema.paths[openApiPath] || {};
+            const operation: Record<string, unknown> = {
+                summary: apiConfig.summary,
+                description: apiConfig.description,
+                tags: apiConfig.tags,
+                parameters: [],
+                responses: {},
+            };
+
+            if (apiConfig.operationId) {
+                operation.operationId = apiConfig.operationId;
+            }
+
+            if (security.length > 0) {
+                operation.security = security;
+            }
+
+            const parameters = [] as Record<string, unknown>[];
+
+            if (apiConfig.request?.query) {
+                parameters.push(...createParameters('query', apiConfig.request.query));
+            }
+
+            if (apiConfig.request?.params) {
+                parameters.push(...createParameters('path', apiConfig.request.params, true));
+            }
+
+            operation.parameters = parameters;
+
+            if (
+                ['post', 'put', 'patch'].includes(method.toLowerCase()) &&
+                apiConfig.request?.body
+            ) {
+                operation.requestBody = createRequestBody(
+                    apiConfig.request.body,
+                    apiConfig.request.contentType,
+                );
+            }
+
+            operation.responses = createResponses(apiConfig.response);
+
+            pathItem[method.toLowerCase()] = operation;
+            openApiSchema.paths[openApiPath] = pathItem;
         },
 
         /**
-         * Generates and returns the OpenAPI schema based on registered routes and security schemes
+         * Returns the OpenAPI schema that has been built incrementally during route registration
          *
          * @returns The OpenAPI schema object
          */
         getOpenApiSchema(): OpenApiSchemaObject {
-            if (cachedSchema) {
-                return cachedSchema;
-            }
-
-            const openApiSchema = {
-                openapi: '3.0.3',
-                info: {
-                    title: config.title || 'API Documentation',
-                    version: config.version || '1.0.0',
-                    description: config.description || 'Generated API documentation',
-                },
-                servers: config.servers || [{url: 'http://localhost:3030'}],
-                paths: {} as Record<string, Record<string, unknown>>,
-                components: {
-                    schemas: {} as Record<string, unknown>,
-                    securitySchemes: securitySchemes,
-                },
-            };
-
-            // Process each registered route
-            routes.forEach((route) => {
-                const pathItem = openApiSchema.paths[route.path] || {};
-
-                const operation: Record<string, unknown> = {
-                    summary: route.config.summary,
-                    description: route.config.description,
-                    tags: route.config.tags,
-                    parameters: [],
-                    responses: {},
-                };
-
-                // Add security requirements if present
-                if (route.security && route.security.length > 0) {
-                    operation.security = route.security;
-                }
-
-                // Add query parameters
-                if (route.config.request?.query) {
-                    const querySchema = z.toJSONSchema(route.config.request.query);
-
-                    if (querySchema.type === 'object' && querySchema.properties) {
-                        Object.entries(querySchema.properties).forEach(([name, schema]) => {
-                            (operation.parameters as Record<string, unknown>[]).push({
-                                name,
-                                in: 'query',
-                                required:
-                                    (querySchema as {required?: string[]}).required?.includes(
-                                        name,
-                                    ) || false,
-                                schema,
-                            });
-                        });
-                    }
-                }
-
-                // Add path parameters
-                if (route.config.request?.params) {
-                    const paramsSchema = z.toJSONSchema(route.config.request.params);
-                    if (paramsSchema.type === 'object' && paramsSchema.properties) {
-                        Object.entries(paramsSchema.properties).forEach(([name, schema]) => {
-                            (operation.parameters as Record<string, unknown>[]).push({
-                                name,
-                                in: 'path',
-                                required: true,
-                                schema,
-                            });
-                        });
-                    }
-                }
-
-                // Add request body for methods that support it
-                if (['post', 'put', 'patch'].includes(route.method) && route.config.request?.body) {
-                    const bodySchema = z.toJSONSchema(route.config.request.body);
-                    const contentTypes = route.config.request?.contentType || ['application/json'];
-                    const content = contentTypes.reduce(
-                        (acc, type) => {
-                            acc[type] = {
-                                schema: bodySchema,
-                            };
-                            return acc;
-                        },
-                        {} as Record<string, {schema: unknown}>,
-                    );
-
-                    operation.requestBody = {
-                        required: true,
-                        content,
-                    };
-                }
-
-                // Add responses
-                if (route.config.response) {
-                    Object.entries(route.config.response.content).forEach(
-                        ([statusCode, responseDef]) => {
-                            // Create the response object with description
-                            const responseObject: Record<string, unknown> = {
-                                description:
-                                    responseDef.description || getResponseDescription(statusCode),
-                            };
-
-                            // Only add content if there is a schema and it's not a 204 response
-                            if (responseDef.schema && statusCode !== '204') {
-                                const schema = z.toJSONSchema(responseDef.schema);
-                                const contentType =
-                                    route.config.response?.contentType || 'application/json';
-
-                                responseObject.content = {
-                                    [contentType]: {
-                                        schema,
-                                    },
-                                };
-                            }
-
-                            (operation.responses as Record<string, unknown>)[statusCode] =
-                                responseObject;
-                        },
-                    );
-                } else {
-                    // Default response if none specified
-                    (operation.responses as Record<string, unknown>)['200'] = {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: {type: 'object'},
-                            },
-                        },
-                    };
-                }
-
-                pathItem[route.method] = operation;
-                openApiSchema.paths[route.path] = pathItem;
-            });
-
-            cachedSchema = openApiSchema;
-
             return openApiSchema;
         },
 
         reset(): void {
-            routes.length = 0;
-            Object.keys(securitySchemes).forEach((key) => {
-                delete securitySchemes[key];
-            });
-            cachedSchema = null;
+            openApiSchema.paths = {};
+            if (openApiSchema.components) {
+                openApiSchema.components.schemas = {};
+                openApiSchema.components.securitySchemes = {};
+            }
         },
     };
 }
