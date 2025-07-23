@@ -16,7 +16,7 @@ import {
     HttpMethod,
 } from './types';
 
-import {OpenApiRegistry} from './validator';
+import {OpenApiRegistry, validationErrorMiddleware} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,6 +182,8 @@ export function setupRoutes(
         const docsPath = ctx.config.openApiRegistry.path || '/docs';
         expressApp.use(docsPath, swaggerUi.serve, swaggerUi.setup(openApiSchema));
     }
+
+    expressApp.use(validationErrorMiddleware);
 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>

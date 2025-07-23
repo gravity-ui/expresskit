@@ -1,5 +1,5 @@
 import {Request as ExpressRequest, Response} from 'express';
-import {ZodError, z} from 'zod/v4'; // Import ZodError
+import {z} from 'zod/v4';
 import {ResponseValidationError, ValidationError} from './errors';
 import {
     ContractRequest,
@@ -19,6 +19,7 @@ export {ValidationError, ResponseValidationError as SerializationError} from './
 export {OpenApiRegistry, createOpenApiRegistry} from './openapi-registry';
 export * from './types';
 export {getContract, getRouteContract, registerContract} from './contract-registry';
+export {validationErrorMiddleware} from './middleware';
 export {
     withSecurityScheme,
     getSecurityScheme,
@@ -186,57 +187,32 @@ export function withContract<
                 expressRes.json(result.data);
             };
 
-            try {
-                if (config.request?.body) {
-                    const contentType = expressReq.headers['content-type'];
-                    const allowedContentTypes = config.request?.contentType ?? ['application/json'];
+            // Check content type if body validation is required
+            if (config.request?.body) {
+                const contentType = expressReq.headers['content-type'];
+                const allowedContentTypes = config.request?.contentType ?? ['application/json'];
 
-                    if (
-                        !contentType ||
-                        !allowedContentTypes.some((type) => contentType.includes(type))
-                    ) {
-                        throw new ValidationError(
-                            `Unsupported content-type. Allowed: ${allowedContentTypes.join(', ')}`,
-                        );
-                    }
-                }
-
-                // Automatically validate request parts unless manual validation is specified
-                if (settings?.manualValidation !== true) {
-                    const validatedData = await enhancedReq.validate();
-                    // Assign validated data using type assertions to satisfy the conditional types
-                    (enhancedReq as {body: Params['TBody']}).body = validatedData.body;
-                    (enhancedReq as {params: Params['TParams']}).params = validatedData.params;
-                    (enhancedReq as {query: Params['TQuery']}).query = validatedData.query;
-                    (enhancedReq as {headers: Params['THeaders']}).headers = validatedData.headers;
-                }
-
-                await handler(enhancedReq, enhancedRes);
-            } catch (error: unknown) {
-                if (error instanceof ValidationError) {
-                    if (!expressRes.headersSent) {
-                        const zodError = error.details as ZodError | undefined;
-                        expressRes.status(error.statusCode || 400).json({
-                            error: error.message || 'Validation error',
-                            code: 'VALIDATION_ERROR',
-                            issues: zodError?.issues.map((issue: z.ZodIssue) => ({
-                                path: issue.path,
-                                message: issue.message,
-                                code: issue.code,
-                            })),
-                        });
-                    }
-                } else if (error instanceof ResponseValidationError) {
-                    if (!expressRes.headersSent) {
-                        expressRes.status(error.statusCode || 500).json({
-                            error: 'Internal Server Error',
-                            code: 'RESPONSE_VALIDATION_FAILED',
-                        });
-                    }
-                } else {
-                    throw error;
+                if (
+                    !contentType ||
+                    !allowedContentTypes.some((type) => contentType.includes(type))
+                ) {
+                    throw new ValidationError(
+                        `Unsupported content-type. Allowed: ${allowedContentTypes.join(', ')}`,
+                    );
                 }
             }
+
+            // Automatically validate request parts unless manual validation is specified
+            if (settings?.manualValidation !== true) {
+                const validatedData = await enhancedReq.validate();
+                // Assign validated data using type assertions to satisfy the conditional types
+                (enhancedReq as {body: Params['TBody']}).body = validatedData.body;
+                (enhancedReq as {params: Params['TParams']}).params = validatedData.params;
+                (enhancedReq as {query: Params['TQuery']}).query = validatedData.query;
+                (enhancedReq as {headers: Params['THeaders']}).headers = validatedData.headers;
+            }
+
+            await handler(enhancedReq, enhancedRes);
         };
 
         registerContract(finalHandler, config);
