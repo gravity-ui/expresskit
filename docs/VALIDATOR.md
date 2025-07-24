@@ -264,8 +264,6 @@ const config: Partial<AppConfig> = {
 };
 ```
 
-By default, ExpressKit uses the built-in `validationErrorMiddleware` if no custom handler is provided. You can replace this behavior based on your application's needs.
-
 ---
 
 ## Security Schemes for OpenAPI Documentation
