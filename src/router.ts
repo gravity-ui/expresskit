@@ -177,13 +177,18 @@ export function setupRoutes(
         }
     });
 
+    const errorHandler = ctx.config.validationErrorHandler
+        ? ctx.config.validationErrorHandler(ctx)
+        : validationErrorMiddleware;
+
+    expressApp.use(errorHandler);
+
     if (ctx.config.openApiRegistry?.enabled && openapiRegistry) {
         const openApiSchema = openapiRegistry.getOpenApiSchema();
+        openapiRegistry.registerErrorHandler(errorHandler);
         const docsPath = ctx.config.openApiRegistry.path || '/docs';
         expressApp.use(docsPath, swaggerUi.serve, swaggerUi.setup(openApiSchema));
     }
-
-    expressApp.use(validationErrorMiddleware);
 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>

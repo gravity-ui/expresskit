@@ -1,17 +1,54 @@
-import {NextFunction, Request, Response} from 'express';
 import {ResponseValidationError, ValidationError} from './errors';
 import {z} from 'zod/v4';
+import {ErrorContract} from './types';
+import {withErrorContract} from './with-error-contract';
 
-export function validationErrorMiddleware(
-    err: unknown,
-    _req: Request,
-    res: Response,
-    next: NextFunction,
-) {
+export const ValidationErrorSchema = z.object({
+    error: z.string(),
+    code: z.literal('VALIDATION_ERROR'),
+    issues: z
+        .array(
+            z.object({
+                path: z.array(z.any()),
+                message: z.string(),
+                code: z.string(),
+            }),
+        )
+        .optional(),
+});
+
+export const ResponseValidationErrorSchema = z.object({
+    error: z.literal('Internal Server Error'),
+    code: z.literal('RESPONSE_VALIDATION_FAILED'),
+});
+
+export const ValidationErrorContract = {
+    errors: {
+        content: {
+            400: {
+                name: 'ValidationError',
+                schema: ValidationErrorSchema,
+                description: 'Validation error',
+            },
+            500: {
+                name: 'ResponseValidationError',
+                schema: ResponseValidationErrorSchema,
+                description: 'Response validation error',
+            },
+        },
+    },
+} satisfies ErrorContract;
+
+export const validationErrorMiddleware = withErrorContract(ValidationErrorContract)((
+    err,
+    _req,
+    res,
+    next,
+) => {
     if (err instanceof ValidationError) {
         if (!res.headersSent) {
             const zodError = err.details as z.ZodError | undefined;
-            res.status(err.statusCode || 400).json({
+            res.sendError(400, {
                 error: err.message || 'Validation error',
                 code: 'VALIDATION_ERROR',
                 issues: zodError?.issues.map((issue: z.ZodIssue) => ({
@@ -23,7 +60,7 @@ export function validationErrorMiddleware(
         }
     } else if (err instanceof ResponseValidationError) {
         if (!res.headersSent) {
-            res.status(err.statusCode || 500).json({
+            res.sendError(500, {
                 error: 'Internal Server Error',
                 code: 'RESPONSE_VALIDATION_FAILED',
             });
@@ -32,4 +69,4 @@ export function validationErrorMiddleware(
         next(err);
         return;
     }
-}
+});

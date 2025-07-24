@@ -2,8 +2,8 @@ import type {OpenApiRegistryConfig, OpenApiSchemaObject, SecuritySchemeObject} f
 
 import {RouteContract} from './types';
 import {z} from 'zod/v4';
-import {AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
-import {getRouteContract} from './contract-registry';
+import {AppErrorHandler, AppMiddleware, AppRouteHandler, HttpMethod} from '../types';
+import {getErrorContract, getRouteContract} from './contract-registry';
 import {getSecurityScheme} from './security-schemes';
 
 /**
@@ -220,6 +220,55 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
                 openApiSchema.components.schemas = {};
                 openApiSchema.components.securitySchemes = {};
             }
+        },
+
+        registerErrorHandler(errorHandler: AppErrorHandler): void {
+            const errorConfig = getErrorContract(errorHandler);
+            if (!errorConfig) return;
+
+            // Ensure components and schemas exist
+            if (!openApiSchema.components) {
+                openApiSchema.components = {};
+            }
+
+            if (!openApiSchema.components.schemas) {
+                openApiSchema.components.schemas = {};
+            }
+
+            // Ensure responses exist
+            if (!openApiSchema.components.responses) {
+                openApiSchema.components.responses = {};
+            }
+
+            const defaultContentType = errorConfig.errors.contentType || 'application/json';
+
+            // Add each error schema to components
+            Object.entries(errorConfig.errors.content).forEach(([statusCode, errorDef]) => {
+                if (errorDef.schema) {
+                    const schemaName = errorDef.name ? errorDef.name : `Error${statusCode}`;
+                    if (openApiSchema.components?.schemas) {
+                        openApiSchema.components.schemas[schemaName] = z.toJSONSchema(
+                            errorDef.schema,
+                        );
+                    }
+
+                    const responseKey = errorDef.name ? errorDef.name : `Error${statusCode}`;
+                    if (openApiSchema.components?.responses) {
+                        (openApiSchema.components.responses as Record<string, unknown>)[
+                            responseKey
+                        ] = {
+                            description: errorDef.description || getResponseDescription(statusCode),
+                            content: {
+                                [defaultContentType]: {
+                                    schema: {
+                                        $ref: `#/components/schemas/${schemaName}`,
+                                    },
+                                },
+                            },
+                        };
+                    }
+                }
+            });
         },
     };
 }

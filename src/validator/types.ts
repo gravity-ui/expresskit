@@ -221,18 +221,48 @@ export type IsManualValidation<
     TSettings extends WithContractSettings | undefined = undefined,
 > = TSettings extends {manualValidation: true} ? true : false;
 
-export type ApiHandler<
-    TConfig extends RouteContract,
-    TSettings extends WithContractSettings | undefined = undefined,
-    P extends WithContractTypeParams<TConfig, TSettings> = WithContractTypeParams<
-        TConfig,
-        TSettings
-    >,
-> = (
-    req: ContractRequest<P['IsManualActual'], P['TBody'], P['TParams'], P['TQuery'], P['THeaders']>,
-    res: ContractResponse<TConfig>,
-    next: (err?: Error) => void,
-) => void | Promise<void>;
-
 export type ContractResponse<TConfig extends RouteContract> = BaseContractResponse &
     TypedResponseMethods<TConfig['response']['content']>;
+
+export interface ErrorContract {
+    errors: {
+        contentType?: string;
+        content: Record<
+            number,
+            {
+                name?: string;
+                schema: z.ZodType;
+                description?: string;
+            }
+        >;
+    };
+}
+
+// Helper to extract the actual Zod schema from an error definition
+export type ExtractSchemaFromErrorDef<TDef> = TDef extends {schema: infer S}
+    ? S extends z.ZodType
+        ? S
+        : never
+    : never;
+
+// Helper to infer data type from an error definition
+export type InferDataFromErrorDef<TDef> =
+    ExtractSchemaFromErrorDef<TDef> extends never
+        ? undefined
+        : z.infer<ExtractSchemaFromErrorDef<TDef>>;
+
+// Interface for the error response methods that will be typed based on ErrorContract['errors']['content']
+interface ErrorResponseMethods<TContent extends Record<number, {schema: z.ZodType}>> {
+    // Status code key is number
+    sendError: <
+        S extends keyof TContent, // S is the status code (number)
+        // D is the actual data type being passed, constrained by the schema for status code S
+        D extends InferDataFromErrorDef<TContent[S]> = InferDataFromErrorDef<TContent[S]>,
+    >(
+        statusCode: S,
+        data: Exact<InferDataFromErrorDef<TContent[S]>, D>,
+    ) => void;
+}
+
+export type ErrorResponse<TConfig extends ErrorContract> = Response &
+    ErrorResponseMethods<TConfig['errors']['content']>;

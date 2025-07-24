@@ -18,7 +18,14 @@ import {registerContract} from './contract-registry';
 export {ValidationError, ResponseValidationError as SerializationError} from './errors';
 export {OpenApiRegistry, createOpenApiRegistry} from './openapi-registry';
 export * from './types';
-export {getContract, getRouteContract, registerContract} from './contract-registry';
+export {
+    getContract,
+    getRouteContract,
+    registerContract,
+    getErrorContract,
+    registerErrorContract,
+} from './contract-registry';
+export {withErrorContract} from './with-error-contract';
 export {validationErrorMiddleware} from './middleware';
 export {
     withSecurityScheme,
