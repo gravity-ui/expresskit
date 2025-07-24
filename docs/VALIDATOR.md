@@ -9,7 +9,7 @@ Provides request validation (body, params, query, headers) and response serializ
   - [withContract Configuration](#withcontractconfighandler)
   - [Enhanced Request](#enhanced-request-contractrequest)
   - [Enhanced Response](#enhanced-response-contractresponse)
-  - [Error Handling](#error-handling)
+  - [Error Handling Customization](#error-handling-customization)
 - [Security Schemes for OpenAPI Documentation](#security-schemes-for-openapi-documentation)
   - [Basic Usage](#basic-usage)
   - [Available Security Scheme Types](#available-security-scheme-types)
@@ -26,7 +26,7 @@ Here's a common example of using `withContract` for automatic request validation
 ```typescript
 import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit';
 import {NodeKit} from '@gravity-ui/nodekit';
-import {z} from 'zod';
+import {z} from 'zod/v4';
 
 // Define your Zod schemas
 const TaskSchema = z.object({
@@ -196,18 +196,75 @@ The `res` object in your handler is enhanced with the following methods:
   - Throws a `ResponseValidationError` if validation fails.
   - Use this method to ensure strict adherence to the API contract.
 
-### Error Handling
+### Error Handling Customization
 
-- **`ValidationError`**:
-  - Thrown by automatic request validation or manual `req.validate()` if request data is invalid.
-  - Typically results in a 400 Bad Request.
-  - Contains `details` with the Zod error.
-- **`ResponseValidationError`**:
-  - Thrown by `res.sendValidated(statusCode, data)` if response data doesn't match the schema.
-  - Typically results in a 500 Internal Server Error.
-  - Contains `details` with the Zod error.
+ExpressKit provides a powerful way to customize validation error handling through the combination of `withErrorContract` and `AppConfig.validationErrorHandler`:
 
-These errors are caught by ExpressKit's default error handling middleware.
+#### Custom Error Handling with `withErrorContract` and `validationErrorHandler`
+
+```typescript
+import {
+  withErrorContract,
+  ErrorContract,
+  ValidationError,
+  ResponseValidationError
+} from '@gravity-ui/expresskit';
+import {z} from 'zod/v4;
+import {NodeKit} from '@gravity-ui/nodekit';
+
+// Define your error contract with typed error responses
+const CustomErrorContract = {
+  errors: {
+    content: {
+      400: {
+        name: 'ValidationError',
+        schema: z.object({
+          error: z.string(),
+          code: z.string(),
+          details: z.array(z.string()).optional(),
+          requestId: z.string(),
+        }),
+        description: 'Custom validation error format',
+      },
+      500: {
+        name: 'ServerError',
+        schema: z.object({
+          error: z.string(),
+          code: z.string(),
+          requestId: z.string(),
+        }),
+        description: 'Server error',
+      },
+    },
+  },
+} satisfies ErrorContract;
+
+const config: Partial<AppConfig> = {
+  validationErrorHandler: (ctx) => {
+    return withErrorContract(CustomErrorContract)((err, req, res, next) => {
+      if (err instanceof ValidationError) {
+        // Use type-safe res.sendError() from withErrorContract
+        res.sendError(400, {
+          error: 'Invalid input',
+          code: 'CUSTOM_VALIDATION_ERROR',
+          details: err.details?.issues?.map(issue => issue.message) || [],
+          requestId: req.id,
+        });
+      } else if (err instanceof ResponseValidationError) {
+        res.sendError(500, {
+          error: 'Internal Server Error',
+          code: 'RESPONSE_VALIDATION_FAILED',
+          requestId: req.id,
+        });
+      } else {
+        next(err);
+      }
+    });
+  },
+};
+```
+
+By default, ExpressKit uses the built-in `validationErrorMiddleware` if no custom handler is provided. You can replace this behavior based on your application's needs.
 
 ---
 
