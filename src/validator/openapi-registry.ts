@@ -54,7 +54,7 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
 
     // Helper function to create parameters for an operation
     function createParameters(
-        paramType: 'query' | 'path',
+        paramType: 'query' | 'path' | 'header',
         schema: z.ZodType,
         alwaysRequired = false,
     ): Record<string, unknown>[] {
@@ -185,6 +185,10 @@ export function createOpenApiRegistry(config: OpenApiRegistryConfig) {
 
             if (apiConfig.request?.params) {
                 parameters.push(...createParameters('path', apiConfig.request.params, true));
+            }
+
+            if (apiConfig.request?.headers) {
+                parameters.push(...createParameters('header', apiConfig.request.headers));
             }
 
             operation.parameters = parameters;
