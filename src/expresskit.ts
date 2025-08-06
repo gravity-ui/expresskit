@@ -11,7 +11,6 @@ import {setupParsers} from './parsers';
 import {setupRoutes} from './router';
 import type {AppRoutes} from './types';
 import {setupLangMiddleware} from './lang/lang-middleware';
-import {OpenApiRegistry, createOpenApiRegistry} from './validator';
 
 const DEFAULT_PORT = 3030;
 
@@ -20,17 +19,12 @@ export class ExpressKit {
     config: AppConfig;
     express: Express;
     httpServer?: Server;
-    openapiRegistry?: OpenApiRegistry;
 
     constructor(nodekit: NodeKit, routes: AppRoutes) {
         this.nodekit = nodekit;
         this.config = nodekit.config;
 
         this.express = express();
-
-        if (this.config.openApiRegistry?.enabled) {
-            this.openapiRegistry = createOpenApiRegistry(this.config.openApiRegistry);
-        }
 
         this.express.disable('x-powered-by');
         this.express.disable('etag');
@@ -43,7 +37,7 @@ export class ExpressKit {
         setupBaseMiddleware(this.nodekit.ctx, this.express);
         setupLangMiddleware(this.nodekit.ctx, this.express);
         setupParsers(this.nodekit.ctx, this.express);
-        setupRoutes(this.nodekit.ctx, this.express, routes, this.openapiRegistry);
+        setupRoutes(this.nodekit.ctx, this.express, routes);
 
         const appSocket = this.getAppSocket();
         const listenTarget = this.getListenTarget(appSocket);

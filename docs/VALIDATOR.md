@@ -1,6 +1,6 @@
 # ExpressKit Validator
 
-Provides request validation (body, params, query, headers) and response serialization and documentation using Zod schemas.
+Provides request validation (body, params, query, headers) and response serialization using Zod schemas.
 
 ## Table of Contents
 
@@ -10,12 +10,6 @@ Provides request validation (body, params, query, headers) and response serializ
   - [Enhanced Request](#enhanced-request-contractrequest)
   - [Enhanced Response](#enhanced-response-contractresponse)
   - [Error Handling Customization](#error-handling-customization)
-- [Security Schemes for OpenAPI Documentation](#security-schemes-for-openapi-documentation)
-  - [Basic Usage](#basic-usage)
-  - [Available Security Scheme Types](#available-security-scheme-types)
-  - [Custom Security Schemes](#custom-security-schemes)
-  - [How It Works](#how-it-works)
-  - [Best Practices](#best-practices)
 
 ---
 
@@ -124,7 +118,7 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
 
 ### `withContract(config, settings?)(handler)`
 
-- **`config` (`RouteContract`)**: An object to configure validation behavior and OpenAPI documentation.
+- **`config` (`RouteContract`)**: An object to configure validation behavior.
 
   ```typescript
   interface RouteContract {
@@ -147,7 +141,7 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
         number,
         {
           schema?: z.ZodType<any>; // Optional Zod schema for this status code's response body
-          description?: string; // Description for this response (e.g., for OpenAPI)
+          description?: string; // Description for this response
         }
       >;
     };
@@ -263,132 +257,3 @@ const config: Partial<AppConfig> = {
   },
 };
 ```
-
----
-
-## Security Schemes for OpenAPI Documentation
-
-ExpressKit supports automatic generation of security requirements in OpenAPI documentation based on the authentication handlers used in your routes.
-
-### Features
-
-- **HOC Wrappers**: `withSecurityScheme` allows you to add security metadata to any authentication handler.
-- **Predefined Security Schemes**: Ready-to-use wrappers for common authentication types:
-  - `bearerAuth`: JWT/Bearer token authentication
-  - `apiKeyAuth`: API key authentication
-  - `basicAuth`: Basic authentication
-  - `oauth2Auth`: OAuth2 authentication
-  - `oidcAuth`: OpenID Connect authentication
-- **Automatic Documentation**: Security requirements are automatically included in OpenAPI documentation.
-
-### Basic Usage
-
-```typescript
-import {bearerAuth} from 'expresskit';
-import jwt from 'jsonwebtoken';
-
-// Add OpenAPI security scheme metadata to your auth handler
-const jwtAuthHandler = bearerAuth('myJwtAuth')(function authenticate(req, res, next) {
-  // Your authentication logic here
-  next();
-});
-
-// Use in routes
-const routes = {
-  'GET /api/protected': {
-    handler: protectedRouteHandler,
-    authHandler: jwtAuthHandler,
-  },
-};
-```
-
-### Available Security Scheme Types
-
-#### Bearer Token Authentication
-
-```typescript
-const jwtAuthHandler = bearerAuth(
-  'jwtAuth', // scheme name in OpenAPI docs
-  ['read:users', 'write:users'], // optional scopes
-)(authFunction);
-```
-
-#### API Key Authentication
-
-```typescript
-const apiKeyHandler = apiKeyAuth(
-  'apiKeyAuth', // scheme name
-  'header', // location: 'header', 'query', or 'cookie'
-  'X-API-Key', // parameter name
-  ['read', 'write'], // optional scopes
-)(authFunction);
-```
-
-#### Basic Authentication
-
-```typescript
-const basicAuthHandler = basicAuth(
-  'basicAuth', // scheme name
-  ['read', 'write'], // optional scopes
-)(authFunction);
-```
-
-#### OAuth2 Authentication
-
-```typescript
-const oauth2Handler = oauth2Auth(
-  'oauth2Auth', // scheme name
-  {
-    implicit: {
-      authorizationUrl: 'https://example.com/oauth/authorize',
-      scopes: {
-        read: 'Read access',
-        write: 'Write access',
-      },
-    },
-  },
-  ['read', 'write'], // optional scopes for this specific handler
-)(authFunction);
-```
-
-#### OpenID Connect Authentication
-
-```typescript
-const oidcHandler = oidcAuth(
-  'oidcAuth', // scheme name
-  'https://example.com/.well-known/openid-configuration',
-  ['profile', 'email'], // optional scopes
-)(authFunction);
-```
-
-### Custom Security Schemes
-
-If you need a custom security scheme, you can use the `withSecurityScheme` function directly:
-
-```typescript
-import {withSecurityScheme} from 'expresskit';
-
-const customAuthHandler = withSecurityScheme({
-  name: 'myCustomScheme',
-  scheme: {
-    type: 'http',
-    scheme: 'digest',
-    description: 'Digest authentication',
-  },
-  scopes: ['read', 'write'],
-})(authFunction);
-```
-
-### How It Works
-
-1. When you wrap an authentication handler with one of the security scheme HOCs, it registers the scheme definition.
-2. The router detects when a route uses an auth handler with a registered security scheme.
-3. The scheme is added to the OpenAPI components.securitySchemes section.
-4. A security requirement referencing the scheme is added to the route operation.
-
-### Best Practices
-
-1. **Consistent Naming**: Use consistent names for your security schemes.
-2. **Documentation**: Add descriptions to your security schemes to explain the required format.
-3. **Scopes**: When using OAuth2 or scoped tokens, be specific about which scopes are required for each endpoint.
-4. **Auth Policy**: The security requirement is only added if the route's auth policy is not disabled.

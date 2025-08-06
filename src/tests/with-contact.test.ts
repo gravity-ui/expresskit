@@ -1,18 +1,8 @@
 import request from 'supertest';
 import {z} from 'zod/v4';
-import {
-    AuthPolicy,
-    ExpressKit,
-    NextFunction,
-    Request,
-    Response,
-    RouteContract,
-    bearerAuth,
-    withContract,
-} from '..';
+import {ExpressKit, RouteContract, withContract} from '..';
 import {NodeKit} from '@gravity-ui/nodekit';
 import type {Application as ExpressApplication} from 'express';
-import {getSecurityScheme} from '../validator/security-schemes';
 
 const ErrorSchema = z.object({
     error: z.string(),
@@ -291,56 +281,6 @@ const comprehensiveValidationController = withContract(ComprehensiveValidationRo
     });
 });
 
-// Security Test Contracts
-const SecuredResourceSchema = z.object({
-    resourceId: z.string(),
-    name: z.string(),
-    isProtected: z.boolean(),
-});
-
-const SecuredRouteContract = {
-    name: 'SecuredAPI',
-    response: {
-        content: {
-            200: {
-                schema: SecuredResourceSchema,
-                description: 'Protected resource accessed successfully.',
-            },
-            401: {schema: ErrorSchema, description: 'Authentication failed.'},
-            403: {schema: ErrorSchema, description: 'Authorization failed.'},
-        },
-    },
-} satisfies RouteContract;
-
-// Create an auth handler with bearer token
-const bearerAuthHandler = bearerAuth('bearerAuth')((
-    req: Request,
-    res: Response,
-    next: NextFunction,
-) => {
-    // Check for Authorization header with bearer token
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
-        // eslint-disable-next-line security/detect-possible-timing-attacks
-        if (token === 'valid-token') {
-            next(); // Valid token, proceed
-            return;
-        }
-    }
-    res.status(401).json({error: 'Unauthorized: Invalid or missing bearer token'});
-    return;
-});
-
-// Controller for secured route
-const securedController = withContract(SecuredRouteContract)(async (_req, res) => {
-    res.sendTyped(200, {
-        resourceId: 'resource-123',
-        name: 'Protected Resource',
-        isProtected: true,
-    });
-});
-
 // Add a new contract for testing schema-less responses
 const NoContentRouteContract = {
     name: 'NoContentAPI',
@@ -419,11 +359,6 @@ describe('withContract', () => {
                 })(async (req, res) => {
                     res.sendValidated(200, req.body);
                 }),
-            },
-            'GET /secured-resource': {
-                authPolicy: AuthPolicy.required,
-                authHandler: bearerAuthHandler,
-                handler: securedController,
             },
         };
 
@@ -627,39 +562,6 @@ describe('withContract', () => {
             expect(response.body.error).toBe(
                 'Unsupported content-type. Allowed: application/x-www-form-urlencoded',
             );
-        });
-    });
-
-    describe('Security Schemes', () => {
-        it('should protect routes with bearer token authentication', async () => {
-            const unauthorizedResponse = await request(app).get('/secured-resource').expect(401);
-            expect(unauthorizedResponse.body).toHaveProperty('error');
-
-            const invalidTokenResponse = await request(app)
-                .get('/secured-resource')
-                .set('Authorization', 'Bearer invalid-token')
-                .expect(401);
-            expect(invalidTokenResponse.body).toHaveProperty('error');
-
-            const authorizedResponse = await request(app)
-                .get('/secured-resource')
-                .set('Authorization', 'Bearer valid-token')
-                .expect(200);
-
-            expect(authorizedResponse.body).toEqual({
-                resourceId: 'resource-123',
-                name: 'Protected Resource',
-                isProtected: true,
-            });
-        });
-
-        it('should properly register security scheme for OpenAPI documentation', () => {
-            const scheme = getSecurityScheme(bearerAuthHandler);
-
-            expect(scheme).toBeDefined();
-            expect(scheme?.name).toBe('bearerAuth');
-            expect(scheme?.scheme.type).toBe('http');
-            expect(scheme?.scheme.scheme).toBe('bearer');
         });
     });
 

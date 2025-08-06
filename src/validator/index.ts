@@ -16,7 +16,6 @@ import {AppRouteHandler} from '../types';
 import {registerContract} from './contract-registry';
 
 export {ValidationError, ResponseValidationError as SerializationError} from './errors';
-export {OpenApiRegistry, createOpenApiRegistry} from './openapi-registry';
 export * from './types';
 export {
     getContract,
@@ -27,16 +26,6 @@ export {
 } from './contract-registry';
 export {withErrorContract} from './with-error-contract';
 export {validationErrorMiddleware} from './middleware';
-export {
-    withSecurityScheme,
-    getSecurityScheme,
-    registerSecurityScheme,
-    bearerAuth,
-    apiKeyAuth,
-    basicAuth,
-    oauth2Auth,
-    oidcAuth,
-} from './security-schemes';
 
 export function withContract<
     TConfig extends RouteContract,

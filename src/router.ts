@@ -1,6 +1,5 @@
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
-import swaggerUi from 'swagger-ui-express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
@@ -16,7 +15,7 @@ import {
     HttpMethod,
 } from './types';
 
-import {OpenApiRegistry, validationErrorMiddleware} from './validator';
+import {validationErrorMiddleware} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,12 +74,7 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     return handler;
 }
 
-export function setupRoutes(
-    ctx: AppContext,
-    expressApp: Express,
-    routes: AppRoutes,
-    openapiRegistry?: OpenApiRegistry,
-) {
+export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRoutes) {
     const appPresets = getAppPresets(ctx.config.expressCspPresets);
 
     Object.entries(routes).forEach(([routeKey, rawRoute]) => {
@@ -165,15 +159,6 @@ export function setupRoutes(
         } else {
             const handler = wrapRouteHandler(routeHandler as AppRouteHandler, handlerName);
             expressApp[method](routePath, wrappedMiddleware, handler);
-
-            if (openapiRegistry) {
-                openapiRegistry.registerRoute(
-                    method as HttpMethod,
-                    routePath,
-                    routeHandler as AppRouteHandler,
-                    authPolicy === AuthPolicy.disabled ? undefined : authHandler,
-                );
-            }
         }
     });
 
@@ -182,13 +167,6 @@ export function setupRoutes(
         : validationErrorMiddleware;
 
     expressApp.use(errorHandler);
-
-    if (ctx.config.openApiRegistry?.enabled && openapiRegistry) {
-        const openApiSchema = openapiRegistry.getOpenApiSchema();
-        openapiRegistry.registerErrorHandler(errorHandler);
-        const docsPath = ctx.config.openApiRegistry.path || '/docs';
-        expressApp.use(docsPath, swaggerUi.serve, swaggerUi.setup(openApiSchema));
-    }
 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
