@@ -19,7 +19,6 @@ export {ValidationError, ResponseValidationError as SerializationError} from './
 export * from './types';
 export {
     getContract,
-    getRouteContract,
     registerContract,
     getErrorContract,
     registerErrorContract,

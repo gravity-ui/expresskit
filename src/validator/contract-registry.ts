@@ -11,10 +11,6 @@ export function getContract(handler: AppRouteHandler): RouteContract | undefined
     return contractRegistry.get(handler);
 }
 
-export function getRouteContract(handler: AppRouteHandler): RouteContract | undefined {
-    return getContract(handler);
-}
-
 const errorContractRegistry = new WeakMap<AppErrorHandler, ErrorContract>();
 
 export function registerErrorContract(handler: AppErrorHandler, contract: ErrorContract): void {
