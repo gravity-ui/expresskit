@@ -1,5 +1,5 @@
 import {Request as ExpressRequest, Response} from 'express';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 
 // Utility type to ensure TProvided is exactly TExpected.
 export type Exact<TExpected, TProvided extends TExpected> =

@@ -1,5 +1,5 @@
 import {Request as ExpressRequest, Response} from 'express';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 import {ResponseValidationError, ValidationError} from './errors';
 import {
     ContractRequest,

@@ -1,4 +1,4 @@
-import {ZodError} from 'zod/v4';
+import {ZodError} from 'zod';
 
 export class ValidationError extends Error {
     statusCode: number;

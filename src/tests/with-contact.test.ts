@@ -1,5 +1,5 @@
 import request from 'supertest';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 import {ExpressKit, RouteContract, withContract} from '..';
 import {NodeKit} from '@gravity-ui/nodekit';
 import type {Application as ExpressApplication} from 'express';

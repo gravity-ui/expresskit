@@ -1,5 +1,5 @@
 import {ResponseValidationError, ValidationError} from './errors';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 import {ErrorContract} from './types';
 import {withErrorContract} from './with-error-contract';
 
