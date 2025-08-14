@@ -1,9 +1,7 @@
 import {AuthPolicy, ExpressKit, Request, Response} from '..';
 import {NodeKit, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import request from 'supertest';
-// import crypto from 'crypto'; // Currently not used but keeping for potential future use
 
-// Mock authentication middleware that sets user ID
 const mockAuthMiddleware = (userId: string) => (req: Request, _res: Response, next: () => void) => {
     req.originalContext.set(USER_ID_PARAM_NAME, userId);
     next();
@@ -151,7 +149,7 @@ describe('CSRF Middleware', () => {
 
             const res = await request.agent(app.express).post('/test-csrf');
 
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should reject invalid CSRF token', async () => {
@@ -162,7 +160,7 @@ describe('CSRF Middleware', () => {
                 .post('/test-csrf')
                 .set('x-csrf-token', 'invalid-token');
 
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should reject CSRF token for different user', async () => {
@@ -179,7 +177,7 @@ describe('CSRF Middleware', () => {
                 .post('/test-csrf')
                 .set('x-csrf-token', user1Token);
 
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
     });
 
@@ -188,28 +186,28 @@ describe('CSRF Middleware', () => {
             const app = setupApp();
 
             const res = await request.agent(app.express).post('/test-csrf');
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should require CSRF token for PUT requests', async () => {
             const app = setupApp();
 
             const res = await request.agent(app.express).put('/test-csrf');
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should require CSRF token for DELETE requests', async () => {
             const app = setupApp();
 
             const res = await request.agent(app.express).delete('/test-csrf');
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should require CSRF token for PATCH requests', async () => {
             const app = setupApp();
 
             const res = await request.agent(app.express).patch('/test-csrf');
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should not require CSRF token for GET requests', async () => {
@@ -298,7 +296,7 @@ describe('CSRF Middleware', () => {
 
             // GET should now require CSRF
             const res = await request.agent(app.express).get('/test-csrf');
-            expect(res.status).toBe(419); // 419 Authentication Timeout is the standard CSRF error code
+            expect(res.status).toBe(419);
         });
 
         it('should work with multiple CSRF secrets', async () => {
@@ -345,8 +343,6 @@ describe('CSRF Middleware', () => {
             // The error should happen when making a request, not during construction
             const res = await request.agent(app.express).post('/test');
             expect(res.status).toBe(500); // Should fail with internal server error
-            // Note: The actual error "CSRF protection is enabled but user ID is not found"
-            // is logged but not exposed in the response for security reasons
         });
     });
 });
