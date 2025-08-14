@@ -14,6 +14,7 @@ import {
     HTTP_METHODS,
     HttpMethod,
 } from './types';
+import {prepareCSRFMiddleware} from './csrf';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -142,6 +143,10 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         if (authHandler) {
             routeMiddleware.push(authHandler);
+
+            if (ctx.config.appCsrfSecret) {
+                routeMiddleware.push(prepareCSRFMiddleware(ctx));
+            }
         }
 
         routeMiddleware.push(...(route.afterAuth || []));
