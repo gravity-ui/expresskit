@@ -80,7 +80,6 @@ export default config;
 | `appCsrfSecret`     | `string \| string[]` | -                                    | **Required.** Secret key(s) for HMAC token generation. Multiple secrets allow for key rotation. |
 | `appCsrfLifetime`   | `number`             | `2592000` (30 days)                  | Token lifetime in seconds. Set to `0` for no expiration.                                        |
 | `appCsrfHeaderName` | `string`             | `'x-csrf-token'`                     | HTTP header name for token validation.                                                          |
-| `appCsrfCookieName` | `string`             | `'CSRF-TOKEN'`                       | Cookie name where token is stored.                                                              |
 | `appCsrfMethods`    | `string[]`           | `['POST', 'PUT', 'DELETE', 'PATCH']` | HTTP methods that require CSRF validation.                                                      |
 
 ### Usage

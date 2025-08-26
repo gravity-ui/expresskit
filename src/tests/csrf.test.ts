@@ -13,7 +13,6 @@ const setupApp = (csrfConfig: NodeKit['config'] = {}, userId = 'test-user-123') 
             appCsrfSecret: 'test-secret-key',
             appCsrfMethods: ['POST', 'PUT', 'DELETE', 'PATCH'],
             appCsrfHeaderName: 'x-csrf-token',
-            appCsrfCookieName: 'CSRF-TOKEN',
             appCsrfLifetime: 3600, // 1 hour
             appAuthPolicy: AuthPolicy.required,
             appAuthHandler: mockAuthMiddleware(userId),
@@ -86,24 +85,6 @@ describe('CSRF Middleware', () => {
             expect(res.body.csrfToken).toMatch(/^[a-f0-9]+:\d+$/);
         });
 
-        it('should set CSRF token in cookie', async () => {
-            const app = setupApp();
-            const res = await request.agent(app.express).get('/csrf-token');
-
-            expect(res.headers['set-cookie']).toBeDefined();
-            const setCookieHeaders = res.headers['set-cookie'] as unknown as string[] | undefined;
-            const csrfCookie = setCookieHeaders?.find((cookie: string) =>
-                cookie.startsWith('CSRF-TOKEN='),
-            );
-            expect(csrfCookie).toBeDefined();
-            expect(csrfCookie).toContain('Secure');
-            expect(csrfCookie).toContain('SameSite');
-
-            // Extract the token value from the cookie and verify it matches the header
-            const cookieToken = csrfCookie?.split(';')[0].split('=')[1];
-            expect(decodeURIComponent(cookieToken!)).toBe(res.headers['x-csrf-token']);
-        });
-
         it('should set CSRF token in designated header', async () => {
             const app = setupApp();
             const res = await request.agent(app.express).get('/csrf-token');
@@ -136,21 +117,6 @@ describe('CSRF Middleware', () => {
                 .agent(app.express)
                 .post('/test-csrf')
                 .set('x-csrf-token', validToken);
-
-            expect(res.status).toBe(200);
-            expect(res.body.message).toBe('CSRF validation passed');
-        });
-
-        it('should accept valid CSRF token in x-xsrf-token header', async () => {
-            const app = setupApp();
-
-            const tokenRes = await request.agent(app.express).get('/csrf-token');
-            const validToken = tokenRes.body.csrfToken;
-
-            const res = await request
-                .agent(app.express)
-                .post('/test-csrf')
-                .set('x-xsrf-token', validToken);
 
             expect(res.status).toBe(200);
             expect(res.body.message).toBe('CSRF validation passed');
@@ -290,19 +256,6 @@ describe('CSRF Middleware', () => {
             expect(res.status).toBe(200);
         });
 
-        it('should work with custom CSRF cookie name', async () => {
-            const app = setupApp({appCsrfCookieName: 'CUSTOM-CSRF-TOKEN'});
-
-            const res = await request.agent(app.express).get('/csrf-token');
-
-            expect(res.headers['set-cookie']).toBeDefined();
-            const setCookieHeaders = res.headers['set-cookie'] as unknown as string[] | undefined;
-            const csrfCookie = setCookieHeaders?.find((cookie: string) =>
-                cookie.startsWith('CUSTOM-CSRF-TOKEN='),
-            );
-            expect(csrfCookie).toBeDefined();
-        });
-
         it('should work with custom CSRF header name', async () => {
             const app = setupApp({appCsrfHeaderName: 'x-custom-csrf'});
 
@@ -340,6 +293,128 @@ describe('CSRF Middleware', () => {
                 .set('x-csrf-token', validToken);
 
             expect(res.status).toBe(200);
+        });
+
+        it('should validate tokens generated with any of the configured secrets', async () => {
+            const app = setupApp({
+                appCsrfSecret: ['secret1', 'secret2'],
+            });
+
+            // Get the user ID from the app
+            const userId = 'test-user-123';
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Manually create tokens using both secrets
+            const crypto = require('crypto');
+
+            const createToken = (secret: string) => {
+                const hmac = crypto.createHmac('sha1', secret);
+                const message = `${userId}:${timestamp}`;
+                const digest = hmac.update(message).digest('hex');
+                return `${digest}:${timestamp}`;
+            };
+
+            const token1 = createToken('secret1');
+            const token2 = createToken('secret2');
+
+            // Both tokens should be valid
+            const res1 = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', token1);
+
+            const res2 = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', token2);
+
+            expect(res1.status).toBe(200);
+            expect(res2.status).toBe(200);
+        });
+
+        it('should reject tokens generated with non-configured secrets', async () => {
+            const app = setupApp({
+                appCsrfSecret: ['secret1', 'secret2'],
+            });
+
+            const userId = 'test-user-123';
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Create a token with a secret that's not in the configuration
+            const crypto = require('crypto');
+            const hmac = crypto.createHmac('sha1', 'wrong-secret');
+            const message = `${userId}:${timestamp}`;
+            const digest = hmac.update(message).digest('hex');
+            const invalidToken = `${digest}:${timestamp}`;
+
+            const res = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', invalidToken);
+
+            expect(res.status).toBe(419);
+        });
+
+        it('should work with single secret as string', async () => {
+            const app = setupApp({
+                appCsrfSecret: 'single-secret',
+            });
+
+            const tokenRes = await request.agent(app.express).get('/csrf-token');
+            const validToken = tokenRes.body.csrfToken;
+
+            const res = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', validToken);
+
+            expect(res.status).toBe(200);
+        });
+
+        it('should validate tokens generated with single secret', async () => {
+            const app = setupApp({
+                appCsrfSecret: 'single-secret',
+            });
+
+            const userId = 'test-user-123';
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Manually create token using the configured secret
+            const crypto = require('crypto');
+            const hmac = crypto.createHmac('sha1', 'single-secret');
+            const message = `${userId}:${timestamp}`;
+            const digest = hmac.update(message).digest('hex');
+            const manualToken = `${digest}:${timestamp}`;
+
+            const res = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', manualToken);
+
+            expect(res.status).toBe(200);
+        });
+
+        it('should reject tokens generated with different single secret', async () => {
+            const app = setupApp({
+                appCsrfSecret: 'correct-secret',
+            });
+
+            const userId = 'test-user-123';
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            // Create a token with a different secret
+            const crypto = require('crypto');
+            const hmac = crypto.createHmac('sha1', 'wrong-secret');
+            const message = `${userId}:${timestamp}`;
+            const digest = hmac.update(message).digest('hex');
+            const invalidToken = `${digest}:${timestamp}`;
+
+            const res = await request
+                .agent(app.express)
+                .post('/test-csrf')
+                .set('x-csrf-token', invalidToken);
+
+            expect(res.status).toBe(419);
         });
     });
 

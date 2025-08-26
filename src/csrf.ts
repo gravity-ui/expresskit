@@ -13,7 +13,6 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
         appCsrfSecret: secret,
         appCsrfLifetime: lifetime = MONTH_SECONDS,
         appCsrfHeaderName: headerName = 'x-csrf-token',
-        appCsrfCookieName: cookieName = 'CSRF-TOKEN',
         appCsrfMethods: methods = ['POST', 'PUT', 'DELETE', 'PATCH'],
     } = ctx.config;
 
@@ -36,12 +35,9 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
     }
 
     function checkToken(userId: string, timestamp = getUnixTime(), tokenValue: string) {
-        for (let i = 0; i < csrfSecrets.length; i += 1) {
-            if (buildToken(userId, timestamp, csrfSecrets[i]) === tokenValue) {
-                return true;
-            }
-        }
-        return false;
+        return csrfSecrets.some(
+            (csrfSecret) => buildToken(userId, timestamp, csrfSecret) === tokenValue,
+        );
     }
 
     function validate(userId: string, tokenValue: string | undefined) {
@@ -68,11 +64,6 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
         const csrfToken = buildToken(userId);
 
         res.locals.csrfToken = csrfToken;
-        res.cookie(cookieName, csrfToken, {
-            secure: true,
-            sameSite: true,
-            maxAge: lifetime * 1000,
-        });
         res.set(headerName, csrfToken);
 
         const isCsrfDisabled = Boolean(req.routeInfo?.disableCsrf);
@@ -82,10 +73,7 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
             !isCsrfDisabled && methods.includes(req.method) && !nonApplicableAuthMethod;
 
         if (shouldCheckToken) {
-            const headerValue =
-                req.headers[headerName] ||
-                req.headers['x-csrf-token'] ||
-                req.headers['x-xsrf-token'];
+            const headerValue = req.headers[headerName];
             const tokenValue =
                 headerValue && Array.isArray(headerValue) ? headerValue[0] : headerValue;
 
