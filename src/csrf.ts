@@ -1,6 +1,6 @@
 import {AppContext, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import crypto from 'crypto';
-import {NextFunction, Request, Response} from './types';
+import {AuthPolicy, NextFunction, Request, Response} from './types';
 
 const MONTH_SECONDS = 30 * 24 * 60 * 60;
 
@@ -8,7 +8,7 @@ function getUnixTime() {
     return Math.floor(Number(new Date()) / 1000);
 }
 
-export function prepareCSRFMiddleware(ctx: AppContext) {
+export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: AuthPolicy) {
     const {
         appCsrfSecret: secret,
         appCsrfLifetime: lifetime = MONTH_SECONDS,
@@ -58,7 +58,11 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
         const userId = req.ctx.get(USER_ID_PARAM_NAME);
 
         if (!userId) {
-            throw new Error('CSRF protection is enabled but user ID is not found');
+            if (routeAuthPolicy === AuthPolicy.required) {
+                throw new Error('CSRF protection is enabled but user ID is not found');
+            }
+            next();
+            return;
         }
 
         const csrfToken = buildToken(userId);

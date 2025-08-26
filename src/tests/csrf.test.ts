@@ -446,5 +446,58 @@ describe('CSRF Middleware', () => {
             const res = await request.agent(app.express).post('/test');
             expect(res.status).toBe(500); // Should fail with internal server error
         });
+
+        it('should throw error when auth method is incorrect and userId is not set in required auth policy', async () => {
+            // Create an app with incorrect auth method that doesn't set userId
+            const nodekit = new NodeKit({
+                config: {
+                    appCsrfSecret: 'test-secret',
+                    appAuthPolicy: AuthPolicy.required,
+                    appAuthHandler: (_req: Request, _res: Response, next: () => void) => {
+                        // Incorrect auth method: doesn't set userId but calls next()
+                        // This should cause CSRF middleware to fail when auth policy is required
+                        next();
+                    },
+                },
+            });
+
+            const routes = {
+                'POST /test-csrf-required': {
+                    authPolicy: AuthPolicy.required,
+                    handler: (_req: Request, res: Response) => {
+                        res.status(200).json({message: 'should not reach here'});
+                    },
+                },
+                'POST /test-csrf-optional': {
+                    authPolicy: AuthPolicy.optional,
+                    handler: (_req: Request, res: Response) => {
+                        res.status(200).json({message: 'should reach here - no CSRF required'});
+                    },
+                },
+                'POST /test-csrf-disabled': {
+                    authPolicy: AuthPolicy.disabled,
+                    handler: (_req: Request, res: Response) => {
+                        res.status(200).json({message: 'should reach here - no auth required'});
+                    },
+                },
+            };
+
+            const app = new ExpressKit(nodekit, routes);
+
+            // Test with required auth policy - should fail with 500 due to missing userId
+            const resRequired = await request.agent(app.express).post('/test-csrf-required');
+            expect(resRequired.status).toBe(500);
+            expect(resRequired.text).toBe('Internal server error');
+
+            // Test with optional auth policy - should pass (CSRF middleware allows missing userId)
+            const resOptional = await request.agent(app.express).post('/test-csrf-optional');
+            expect(resOptional.status).toBe(200);
+            expect(resOptional.body.message).toBe('should reach here - no CSRF required');
+
+            // Test with disabled auth policy - should pass (no auth required)
+            const resDisabled = await request.agent(app.express).post('/test-csrf-disabled');
+            expect(resDisabled.status).toBe(200);
+            expect(resDisabled.body.message).toBe('should reach here - no auth required');
+        });
     });
 });
