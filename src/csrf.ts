@@ -12,7 +12,7 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
     const {
         appCsrfSecret: secret,
         appCsrfLifetime: lifetime = MONTH_SECONDS,
-        appCsrfTokenName: headerName = 'x-csrf-token',
+        appCsrfHeaderName: headerName = 'x-csrf-token',
         appCsrfCookieName: cookieName = 'CSRF-TOKEN',
         appCsrfMethods: methods = ['POST', 'PUT', 'DELETE', 'PATCH'],
     } = ctx.config;
@@ -73,6 +73,7 @@ export function prepareCSRFMiddleware(ctx: AppContext) {
             sameSite: true,
             maxAge: lifetime * 1000,
         });
+        res.set(headerName, csrfToken);
 
         const isCsrfDisabled = Boolean(req.routeInfo?.disableCsrf);
         const nonApplicableAuthMethod = Boolean(res.locals.oauth); // TODO we should move to something like res.locals.skipCsrf instead of this

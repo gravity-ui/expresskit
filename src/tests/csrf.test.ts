@@ -12,7 +12,7 @@ const setupApp = (csrfConfig: NodeKit['config'] = {}, userId = 'test-user-123') 
         config: {
             appCsrfSecret: 'test-secret-key',
             appCsrfMethods: ['POST', 'PUT', 'DELETE', 'PATCH'],
-            appCsrfTokenName: 'x-csrf-token',
+            appCsrfHeaderName: 'x-csrf-token',
             appCsrfCookieName: 'CSRF-TOKEN',
             appCsrfLifetime: 3600, // 1 hour
             appAuthPolicy: AuthPolicy.required,
@@ -98,6 +98,18 @@ describe('CSRF Middleware', () => {
             expect(csrfCookie).toBeDefined();
             expect(csrfCookie).toContain('Secure');
             expect(csrfCookie).toContain('SameSite');
+
+            // Extract the token value from the cookie and verify it matches the header
+            const cookieToken = csrfCookie?.split(';')[0].split('=')[1];
+            expect(decodeURIComponent(cookieToken!)).toBe(res.headers['x-csrf-token']);
+        });
+
+        it('should set CSRF token in designated header', async () => {
+            const app = setupApp();
+            const res = await request.agent(app.express).get('/csrf-token');
+
+            // Verify the token content matches what's in the response body
+            expect(res.headers['x-csrf-token']).toBe(res.body.csrfToken);
         });
 
         it('should generate different tokens for different users', async () => {
@@ -265,7 +277,7 @@ describe('CSRF Middleware', () => {
 
     describe('Configuration', () => {
         it('should work with custom CSRF token header name', async () => {
-            const app = setupApp({appCsrfTokenName: 'x-custom-csrf'});
+            const app = setupApp({appCsrfHeaderName: 'x-custom-csrf'});
 
             const tokenRes = await request.agent(app.express).get('/csrf-token');
             const validToken = tokenRes.body.csrfToken;
@@ -289,6 +301,21 @@ describe('CSRF Middleware', () => {
                 cookie.startsWith('CUSTOM-CSRF-TOKEN='),
             );
             expect(csrfCookie).toBeDefined();
+        });
+
+        it('should work with custom CSRF header name', async () => {
+            const app = setupApp({appCsrfHeaderName: 'x-custom-csrf'});
+
+            const res = await request.agent(app.express).get('/csrf-token');
+
+            expect(res.headers['x-custom-csrf']).toBeDefined();
+            expect(res.headers['x-custom-csrf']).toMatch(/^[a-f0-9]+:\d+$/);
+
+            // Verify the token content matches what's in the response body
+            expect(res.headers['x-custom-csrf']).toBe(res.body.csrfToken);
+
+            // Ensure the default header is not set
+            expect(res.headers['x-csrf-token']).toBeUndefined();
         });
 
         it('should work with custom HTTP methods', async () => {
