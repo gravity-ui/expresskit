@@ -25,18 +25,12 @@ declare global {
             originalContext: AppContext;
             routeInfo: AppRouteParams;
         }
-    }
-}
 
-declare module 'express' {
-    export interface Request {
-        /**
-         * @deprecated Use req.ctx.get(REQUEST_ID_PARAM_NAME) instead of req.id
-         */
-        id: string;
-        ctx: AppContext;
-        originalContext: AppContext;
-        routeInfo: AppRouteParams;
+        export interface Response {
+            locals: {
+                csrfToken?: string;
+            };
+        }
     }
 }
 
@@ -77,6 +71,11 @@ declare module '@gravity-ui/nodekit' {
         expressCspReportTo?: CSPMiddlewareParams['reportTo'];
         expressCspReportUri?: CSPMiddlewareParams['reportUri'];
 
+        appCsrfSecret?: string | string[];
+        appCsrfLifetime?: number;
+        appCsrfHeaderName?: string;
+        appCsrfMethods?: string[]; // Switch to HttpMethod[] in the next major release
+
         appAllowedLangs?: string[];
         appDefaultLang?: string;
         appLangQueryParamName?: string;
@@ -95,6 +94,7 @@ export enum AuthPolicy {
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
     handlerName?: string;
+    disableCsrf?: boolean;
 }
 
 export interface AppRouteDescription extends AppRouteParams {
@@ -110,6 +110,7 @@ export interface AppRouteDescription extends AppRouteParams {
           }) => CSPPreset);
 }
 
+// TODO Make this uppercase in the next major release
 export const HTTP_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
