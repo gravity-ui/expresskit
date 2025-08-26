@@ -151,7 +151,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             routeMiddleware.push(authHandler);
 
             if (ctx.config.appCsrfSecret) {
-                routeMiddleware.push(prepareCSRFMiddleware(ctx));
+                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy as AuthPolicy));
             }
         }
 
