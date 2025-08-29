@@ -66,6 +66,7 @@ declare module '@gravity-ui/nodekit' {
         appAfterAuthMiddleware?: RequestHandler[];
 
         appTelemetryChEnableSelfStats?: boolean;
+        appTelemetryChSelfStatsExcludedActions?: string[];
 
         appLoggingOmitIdInMessages?: boolean;
 
