@@ -72,11 +72,6 @@ interface TypedResponseMethods<TContent extends Record<number, {schema?: z.ZodTy
 }
 
 export interface RouteContract {
-    name?: string;
-    operationId?: string;
-    summary?: string;
-    description?: string;
-    tags?: string[];
     request?: {
         body?: z.ZodType;
         params?: z.ZodType;

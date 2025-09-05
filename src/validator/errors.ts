@@ -2,24 +2,24 @@ import {ZodError} from 'zod';
 
 export class ValidationError extends Error {
     statusCode: number;
-    details: ZodError | unknown;
+    zodError?: ZodError;
 
-    constructor(message: string, details?: ZodError | unknown, statusCode = 400) {
+    constructor(message: string, zodError?: ZodError, statusCode = 400) {
         super(message);
         this.name = 'ValidationError';
         this.statusCode = statusCode;
-        this.details = details;
+        this.zodError = zodError;
     }
 }
 
 export class ResponseValidationError extends Error {
     statusCode: number;
-    details: ZodError | unknown;
+    zodError?: ZodError;
 
-    constructor(message: string, details?: ZodError | unknown, statusCode = 500) {
+    constructor(message: string, zodError?: ZodError, statusCode = 500) {
         super(message);
         this.name = 'ResponseValidationError';
         this.statusCode = statusCode;
-        this.details = details;
+        this.zodError = zodError;
     }
 }

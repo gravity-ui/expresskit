@@ -91,7 +91,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         const {
             authPolicy: routeAuthPolicy,
-            handler: routeHandler,
+            handler: _h,
             beforeAuth: _beforeAuth,
             afterAuth: _afterAuth,
             cspPresets,
@@ -157,13 +157,13 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             const targetApp = (route as AppMountDescription).handler({router, wrapRouteHandler});
             expressApp.use(routePath, wrappedMiddleware, targetApp || router);
         } else {
-            const handler = wrapRouteHandler(routeHandler as AppRouteHandler, handlerName);
+            const handler = wrapRouteHandler((route as AppRouteDescription).handler, handlerName);
             expressApp[method](routePath, wrappedMiddleware, handler);
         }
     });
 
-    const errorHandler = ctx.config.validationErrorHandler
-        ? ctx.config.validationErrorHandler(ctx)
+    const errorHandler = ctx.config.appValidationErrorHandler
+        ? ctx.config.appValidationErrorHandler(ctx)
         : validationErrorMiddleware;
 
     expressApp.use(errorHandler);

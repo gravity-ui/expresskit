@@ -23,7 +23,6 @@ const AsyncResponseBodySchema = z.object({
 });
 
 const validateSuccessRouteContract = {
-    name: 'ValidateSuccessAPI',
     request: {
         body: z.object({
             name: z.string(),
@@ -48,7 +47,6 @@ const validateSuccessController = withContract(validateSuccessRouteContract)(asy
 });
 
 const rejectInvalidRouteContract = {
-    name: 'RejectInvalidAPI',
     request: {
         body: z.object({
             name: z.string(),
@@ -72,7 +70,6 @@ const rejectInvalidController = withContract(rejectInvalidRouteContract)(async (
 });
 
 const asyncOperationRouteContract = {
-    name: 'AsyncOperationAPI',
     response: {
         content: {
             200: {schema: AsyncResponseBodySchema, description: 'Successful async response.'},
@@ -92,7 +89,6 @@ const ManualValidationBodySchema = z.object({
     quantity: z.number().min(1),
 });
 const ManualValidationRouteContract = {
-    name: 'ManualValidationAPI',
     request: {
         body: ManualValidationBodySchema,
     },
@@ -125,7 +121,6 @@ const TypedJsonTestSchema = z
     .loose(); // Use .loose() to allow extra fields without erroring/stripping
 
 const TypedJsonRouteContract = {
-    name: 'TypedJsonAPI',
     response: {
         content: {
             200: {schema: TypedJsonTestSchema, description: 'TypedJSON test successful.'},
@@ -149,7 +144,6 @@ const SerializeTestSchema = z.object({
 });
 
 const SerializeRouteContract = {
-    name: 'SerializeAPI',
     response: {
         content: {
             200: {schema: SerializeTestSchema, description: 'Serialize test successful.'},
@@ -189,7 +183,6 @@ const SerializeNestedTestSchema = z.object({
 });
 
 const SerializeNestedRouteContract = {
-    name: 'SerializeNestedAPI',
     response: {
         content: {
             200: {
@@ -238,7 +231,6 @@ const ComprehensiveValidationSchema = z.object({
 });
 
 const ComprehensiveValidationRouteContract = {
-    name: 'ComprehensiveValidationAPI',
     request: {
         params: z.object({
             userId: z.string().uuid({message: 'Invalid User ID in path'}),
@@ -283,7 +275,6 @@ const comprehensiveValidationController = withContract(ComprehensiveValidationRo
 
 // Add a new contract for testing schema-less responses
 const NoContentRouteContract = {
-    name: 'NoContentAPI',
     response: {
         content: {
             204: {

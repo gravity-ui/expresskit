@@ -47,7 +47,7 @@ export const validationErrorMiddleware = withErrorContract(ValidationErrorContra
 ) => {
     if (err instanceof ValidationError) {
         if (!res.headersSent) {
-            const zodError = err.details as z.ZodError | undefined;
+            const zodError = err.zodError as z.ZodError | undefined;
             res.sendError(400, {
                 error: err.message || 'Validation error',
                 code: 'VALIDATION_ERROR',
