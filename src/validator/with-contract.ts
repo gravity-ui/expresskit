@@ -146,7 +146,8 @@ export function withContract<
                     : InferDataFromResponseDef<TConfig['response']['content'][S]>,
             ): Promise<void> {
                 const responseDef = config.response.content[statusCode as number];
-                const schemaToValidate = responseDef.schema;
+                const schemaToValidate =
+                    responseDef instanceof z.ZodType ? responseDef : responseDef.schema;
 
                 expressRes.status(statusCode as number);
 

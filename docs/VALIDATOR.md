@@ -48,10 +48,9 @@ const CreateTaskConfig = {
   },
   response: {
     content: {
-      201: {
-        schema: TaskSchema,
-        description: 'Task created successfully.',
-      },
+      // Using the simplified syntax for a 201 response
+      201: TaskSchema,
+      // Using the object syntax when a description is needed
       400: {
         schema: ErrorSchema,
         description: 'Invalid input data.',
@@ -139,10 +138,11 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
       contentType?: string; // The response content type. Default: 'application/json'
       content: Record<
         number,
-        {
-          schema?: z.ZodType<any>; // Optional Zod schema for this status code's response body
-          description?: string; // Description for this response
-        }
+        | z.ZodType<any>
+        | {
+            schema?: z.ZodType<any>; // Optional Zod schema for this status code's response body
+            description?: string; // Description for this response
+          }
       >;
     };
   }

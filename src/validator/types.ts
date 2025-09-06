@@ -36,12 +36,18 @@ export interface BaseContractResponse extends Response {
     // No serialization methods here
 }
 
+// Helper to get Zod schema from either a direct schema or a response definition object
+export type GetSchema<TDef> = TDef extends z.ZodType
+    ? TDef
+    : TDef extends {schema?: infer S}
+      ? S extends z.ZodType
+          ? S
+          : never
+      : never;
+
 // Helper to extract the actual Zod schema from a response definition in ApiRouteConfig.response.content
-export type ExtractSchemaFromResponseDef<TDef> = TDef extends {schema?: infer S}
-    ? S extends z.ZodType
-        ? S
-        : never
-    : never;
+export type ExtractSchemaFromResponseDef<TDef> =
+    GetSchema<TDef> extends z.ZodType ? GetSchema<TDef> : never;
 
 // Helper to infer data type from a response definition - EXPORT THIS
 export type InferDataFromResponseDef<TDef> =
@@ -50,7 +56,7 @@ export type InferDataFromResponseDef<TDef> =
         : z.infer<ExtractSchemaFromResponseDef<TDef>>;
 
 // Interface for the response methods that will be typed based on ApiRouteConfig['response']['content']
-interface TypedResponseMethods<TContent extends Record<number, {schema?: z.ZodType}>> {
+interface TypedResponseMethods<TContent extends Record<number, z.ZodType | {schema?: z.ZodType}>> {
     // Status code key is number
     sendTyped: <
         S extends keyof TContent, // S is the status code (number)
@@ -81,7 +87,7 @@ export interface RouteContract {
     };
     response: {
         contentType?: string;
-        content: Record<number, {schema?: z.ZodType; description?: string}>;
+        content: Record<number, z.ZodType | {schema?: z.ZodType; description?: string}>;
     };
 }
 

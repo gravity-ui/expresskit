@@ -72,7 +72,7 @@ const rejectInvalidController = withContract(rejectInvalidRouteContract)(async (
 const asyncOperationRouteContract = {
     response: {
         content: {
-            200: {schema: AsyncResponseBodySchema, description: 'Successful async response.'},
+            200: AsyncResponseBodySchema,
             500: {schema: ErrorSchema, description: 'Internal server error.'},
         },
     },
@@ -342,9 +342,7 @@ describe('withContract', () => {
                     },
                     response: {
                         content: {
-                            200: {
-                                schema: z.object({name: z.string()}),
-                            },
+                            200: z.object({name: z.string()}),
                         },
                     },
                 })(async (req, res) => {
