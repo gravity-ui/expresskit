@@ -66,7 +66,6 @@ declare module '@gravity-ui/nodekit' {
         appAfterAuthMiddleware?: RequestHandler[];
 
         appTelemetryChEnableSelfStats?: boolean;
-        appTelemetryChSelfStatsExcludedActions?: string[];
 
         appLoggingOmitIdInMessages?: boolean;
 
@@ -96,6 +95,7 @@ export enum AuthPolicy {
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
     handlerName?: string;
+    disableSelfStats?: boolean;
 }
 
 export interface AppRouteDescription extends AppRouteParams {

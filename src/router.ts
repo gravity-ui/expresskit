@@ -102,17 +102,12 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
             res.on('finish', () => {
                 if (req.ctx.config.appTelemetryChEnableSelfStats) {
-                    const actionName = req.routeInfo.handlerName || UNNAMED_CONTROLLER;
-                    const isExcludedTelemetryAction = Boolean(
-                        req.ctx.config?.appTelemetryChSelfStatsExcludedActions?.includes(
-                            actionName,
-                        ),
-                    );
+                    const disableSelfStats = Boolean(req.routeInfo.disableSelfStats);
 
-                    if (!isExcludedTelemetryAction) {
+                    if (!disableSelfStats) {
                         req.ctx.stats({
                             service: 'self',
-                            action: actionName,
+                            action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
                             responseStatus: res.statusCode,
                             requestId: req.ctx.get(REQUEST_ID_PARAM_NAME) || '',
                             requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
