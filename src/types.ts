@@ -95,6 +95,7 @@ export enum AuthPolicy {
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
     handlerName?: string;
+    disableSelfStats?: boolean;
 }
 
 export interface AppRouteDescription extends AppRouteParams {
