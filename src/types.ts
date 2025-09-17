@@ -25,12 +25,6 @@ declare global {
             originalContext: AppContext;
             routeInfo: AppRouteParams;
         }
-
-        export interface Response {
-            locals: {
-                csrfToken?: string;
-            };
-        }
     }
 }
 
@@ -82,6 +76,10 @@ declare module '@gravity-ui/nodekit' {
         appLangByTld?: Record<string, string | undefined>;
         appGetLangByHostname?: (hostname: string) => string | undefined;
         appValidationErrorHandler?: (ctx: AppContext) => AppErrorHandler;
+    }
+
+    interface AppContextParams {
+        csrfToken?: string;
     }
 }
 

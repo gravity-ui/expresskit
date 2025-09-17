@@ -85,7 +85,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                     req.originalContext.log('Request completed', responseExtra);
                 }
                 req.originalContext.setTag('http.status_code', statusCode);
-                req.originalContext.end();
             });
 
             next();

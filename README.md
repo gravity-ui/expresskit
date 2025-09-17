@@ -102,8 +102,8 @@ const nodekit = new NodeKit({
 
 const app = new ExpressKit(nodekit, {
   'GET /api/form': (req, res) => {
-    // Token is available in res.locals.csrfToken, it'll also be sent in cookies and headers of the successfull response
-    res.json({csrfToken: res.locals.csrfToken});
+    // Token is available in request context
+    res.json({csrfToken: req.originalContext.get('csrfToken')});
   },
 
   'POST /api/submit': (req, res) => {

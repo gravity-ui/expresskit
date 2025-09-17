@@ -1,6 +1,7 @@
 import {AppContext, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import crypto from 'crypto';
 import {AuthPolicy, NextFunction, Request, Response} from './types';
+import {CSRF_TOKEN_CONTEXT_KEY} from './constants';
 
 const MONTH_SECONDS = 30 * 24 * 60 * 60;
 
@@ -67,7 +68,7 @@ export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: AuthPoli
 
         const csrfToken = buildToken(userId);
 
-        res.locals.csrfToken = csrfToken;
+        req.originalContext.set(CSRF_TOKEN_CONTEXT_KEY, csrfToken, {inheritable: false});
         res.set(headerName, csrfToken);
 
         const isCsrfDisabled = Boolean(req.routeInfo?.disableCsrf);

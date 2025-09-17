@@ -120,6 +120,10 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                         });
                     }
                 }
+
+                setImmediate(() => {
+                    req.originalContext.end();
+                });
             });
 
             next();

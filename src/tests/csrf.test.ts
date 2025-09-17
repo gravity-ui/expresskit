@@ -1,6 +1,7 @@
 import {AuthPolicy, ExpressKit, Request, Response} from '..';
 import {NodeKit, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import request from 'supertest';
+import {CSRF_TOKEN_CONTEXT_KEY} from '../constants';
 
 const mockAuthMiddleware = (userId: string) => (req: Request, _res: Response, next: () => void) => {
     req.originalContext.set(USER_ID_PARAM_NAME, userId);
@@ -25,7 +26,7 @@ const setupApp = (csrfConfig: NodeKit['config'] = {}, userId = 'test-user-123') 
             authPolicy: AuthPolicy.required,
             handler: (req: Request, res: Response) => {
                 res.status(200).json({
-                    csrfToken: res.locals.csrfToken,
+                    csrfToken: req.originalContext.get(CSRF_TOKEN_CONTEXT_KEY),
                     userId: req.ctx.get(USER_ID_PARAM_NAME),
                 });
             },
