@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/gravity-ui/expresskit/compare/v2.5.0...v2.6.0) (2025-09-10)
+
+
+### Features
+
+* add option to exclude actions from self telemetry ([#80](https://github.com/gravity-ui/expresskit/issues/80)) ([a68bc6f](https://github.com/gravity-ui/expresskit/commit/a68bc6f881f35dca2ca8653dc0b9f2f57c778a07))
+
 ## [2.5.0](https://github.com/gravity-ui/expresskit/compare/v2.4.0...v2.5.0) (2025-07-04)
 
 
