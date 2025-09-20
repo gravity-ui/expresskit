@@ -27,7 +27,7 @@ export function withErrorContract<TConfig extends ErrorContract>(config: TConfig
                 D extends InferDataFromErrorDef<TConfig['errors']['content'][S]>,
             >(
                 statusCode: S,
-                data: Exact<InferDataFromErrorDef<TConfig['errors']['content'][S]>, D>,
+                data?: Exact<InferDataFromErrorDef<TConfig['errors']['content'][S]>, D>,
             ): void {
                 expressRes.status(statusCode as number);
                 expressRes.json(data);

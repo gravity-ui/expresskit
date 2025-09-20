@@ -210,6 +210,13 @@ import {NodeKit} from '@gravity-ui/nodekit';
 const CustomErrorContract = {
   errors: {
     content: {
+      // Simplified form: just a Zod schema
+      422: z.object({
+        error: z.string(),
+        code: z.literal('UNPROCESSABLE_ENTITY'),
+        details: z.array(z.string()).optional(),
+      }),
+      // Object form when you need metadata
       400: {
         name: 'ValidationError',
         schema: z.object({
@@ -256,8 +263,4 @@ const config: Partial<AppConfig> = {
     });
   },
 };
-```
-
-```
-
 ```

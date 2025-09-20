@@ -148,21 +148,24 @@ export interface ErrorContract {
         contentType?: string;
         content: Record<
             number,
-            {
-                name?: string;
-                schema: z.ZodType;
-                description?: string;
-            }
+            | z.ZodType
+            | {
+                  name?: string;
+                  schema?: z.ZodType;
+                  description?: string;
+              }
         >;
     };
 }
 
-// Helper to extract the actual Zod schema from an error definition
-export type ExtractSchemaFromErrorDef<TDef> = TDef extends {schema: infer S}
-    ? S extends z.ZodType
-        ? S
-        : never
-    : never;
+// Helper to extract the actual Zod schema from an error definition (supports direct zod or object with optional schema)
+export type ExtractSchemaFromErrorDef<TDef> = TDef extends z.ZodType
+    ? TDef
+    : TDef extends {schema?: infer S}
+      ? S extends z.ZodType
+          ? S
+          : never
+      : never;
 
 // Helper to infer data type from an error definition
 export type InferDataFromErrorDef<TDef> =
@@ -171,7 +174,7 @@ export type InferDataFromErrorDef<TDef> =
         : z.infer<ExtractSchemaFromErrorDef<TDef>>;
 
 // Interface for the error response methods that will be typed based on ErrorContract['errors']['content']
-interface ErrorResponseMethods<TContent extends Record<number, {schema: z.ZodType}>> {
+interface ErrorResponseMethods<TContent extends Record<number, z.ZodType | {schema?: z.ZodType}>> {
     // Status code key is number
     sendError: <
         S extends keyof TContent, // S is the status code (number)
@@ -179,7 +182,9 @@ interface ErrorResponseMethods<TContent extends Record<number, {schema: z.ZodTyp
         D extends InferDataFromErrorDef<TContent[S]> = InferDataFromErrorDef<TContent[S]>,
     >(
         statusCode: S,
-        data: Exact<InferDataFromErrorDef<TContent[S]>, D>,
+        data?: ExtractSchemaFromErrorDef<TContent[S]> extends never
+            ? undefined
+            : Exact<InferDataFromErrorDef<TContent[S]>, D>,
     ) => void;
 }
 
