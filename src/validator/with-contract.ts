@@ -121,7 +121,7 @@ export function withContract<
 
             const enhancedRes = expressRes as ContractResponse<TConfig>;
 
-            enhancedRes.sendTyped = function <
+            enhancedRes.sendTyped = <
                 S extends keyof TConfig['response']['content'],
                 D extends InferDataFromResponseDef<
                     TConfig['response']['content'][S]
@@ -131,20 +131,18 @@ export function withContract<
                 data?: ExtractSchemaFromResponseDef<TConfig['response']['content'][S]> extends never
                     ? undefined
                     : Exact<InferDataFromResponseDef<TConfig['response']['content'][S]>, D>,
-            ): void {
+            ): void => {
                 expressRes.status(statusCode as number);
 
                 expressRes.json(data);
             };
 
-            enhancedRes.sendValidated = async function <
-                S extends keyof TConfig['response']['content'],
-            >(
+            enhancedRes.sendValidated = async <S extends keyof TConfig['response']['content']>(
                 statusCode: S,
                 data?: ExtractSchemaFromResponseDef<TConfig['response']['content'][S]> extends never
                     ? undefined
                     : InferDataFromResponseDef<TConfig['response']['content'][S]>,
-            ): Promise<void> {
+            ): Promise<void> => {
                 const responseDef = config.response.content[statusCode as number];
                 const schemaToValidate =
                     responseDef instanceof z.ZodType ? responseDef : responseDef.schema;

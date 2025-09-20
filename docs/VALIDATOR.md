@@ -121,11 +121,6 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
 
   ```typescript
   interface RouteContract {
-    name?: string; // Descriptive name for logging/tracing
-    operationId?: string; // Unique ID for the operation (e.g., for OpenAPI)
-    summary?: string; // Short summary for OpenAPI
-    description?: string; // Detailed description for OpenAPI
-    tags?: string[]; // Tags for grouping (e.g., for OpenAPI)
     request?: {
       contentType?: string | string[]; // Allowed request content types. Default: 'application/json'
       body?: z.ZodType<any>; // Schema for req.body
