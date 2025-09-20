@@ -5,7 +5,7 @@ import {withErrorContract} from './with-error-contract';
 
 export const ValidationErrorSchema = z.object({
     error: z.string(),
-    code: z.literal('VALIDATION_ERROR'),
+    code: z.literal('VALIDATION_FAILED'),
     issues: z
         .array(
             z.object({
@@ -18,7 +18,7 @@ export const ValidationErrorSchema = z.object({
 });
 
 export const ResponseValidationErrorSchema = z.object({
-    error: z.literal('Internal Server Error'),
+    error: z.string(),
     code: z.literal('RESPONSE_VALIDATION_FAILED'),
 });
 
@@ -50,7 +50,7 @@ export const validationErrorMiddleware = withErrorContract(ValidationErrorContra
             const zodError = err.zodError as z.ZodError | undefined;
             res.sendError(400, {
                 error: err.message || 'Validation error',
-                code: 'VALIDATION_ERROR',
+                code: 'VALIDATION_FAILED',
                 issues: zodError?.issues.map((issue: z.ZodIssue) => ({
                     path: issue.path,
                     message: issue.message,
@@ -61,7 +61,7 @@ export const validationErrorMiddleware = withErrorContract(ValidationErrorContra
     } else if (err instanceof ResponseValidationError) {
         if (!res.headersSent) {
             res.sendError(500, {
-                error: 'Internal Server Error',
+                error: err.message || 'Internal Server Error',
                 code: 'RESPONSE_VALIDATION_FAILED',
             });
         }

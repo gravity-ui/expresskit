@@ -1,5 +1,22 @@
 export {ValidationError, ResponseValidationError} from './errors';
-export * from './types';
+export type {
+    Exact,
+    ContractRequest,
+    BaseContractResponse,
+    GetSchema,
+    ExtractSchemaFromResponseDef,
+    InferDataFromResponseDef,
+    RouteContract,
+    WithContractSettings,
+    InferZodType,
+    WithContractTypeParams,
+    IsManualValidation,
+    ContractResponse,
+    ErrorContract,
+    ExtractSchemaFromErrorDef,
+    InferDataFromErrorDef,
+    ErrorResponse,
+} from './types';
 export {
     getContract,
     registerContract,
