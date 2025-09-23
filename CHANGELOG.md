@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/gravity-ui/expresskit/compare/v2.6.0...v2.7.0) (2025-09-23)
+
+
+### Features
+
+* **validator:** zod v4 integration ([#72](https://github.com/gravity-ui/expresskit/issues/72)) ([ac509d1](https://github.com/gravity-ui/expresskit/commit/ac509d1f5ec6af441a3ec7405e26ddcc96af16fd))
+
 ## [2.6.0](https://github.com/gravity-ui/expresskit/compare/v2.5.0...v2.6.0) (2025-09-10)
 
 
