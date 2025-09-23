@@ -187,9 +187,9 @@ The `res` object in your handler is enhanced with the following methods:
 
 ### Error Handling Customization
 
-ExpressKit provides a powerful way to customize validation error handling through the combination of `withErrorContract` and `AppConfig.validationErrorHandler`:
+ExpressKit provides a powerful way to customize validation error handling through the combination of `withErrorContract` and `AppConfig.appValidationErrorHandler`:
 
-#### Custom Error Handling with `withErrorContract` and `validationErrorHandler`
+#### Custom Error Handling with `withErrorContract` and `appValidationErrorHandler`
 
 ```typescript
 import {
@@ -236,7 +236,7 @@ const CustomErrorContract = {
 } satisfies ErrorContract;
 
 const config: Partial<AppConfig> = {
-  validationErrorHandler: (ctx) => {
+  appValidationErrorHandler: (ctx) => {
     return withErrorContract(CustomErrorContract)((err, req, res, next) => {
       if (err instanceof ValidationError) {
         // Use type-safe res.sendError() from withErrorContract
