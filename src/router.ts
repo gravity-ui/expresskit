@@ -15,6 +15,8 @@ import {
     HttpMethod,
 } from './types';
 
+import {validationErrorMiddleware} from './validator';
+
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return HTTP_METHODS.includes(method as any) || method === 'mount';
@@ -163,6 +165,12 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             expressApp[method](routePath, wrappedMiddleware, handler);
         }
     });
+
+    const errorHandler = ctx.config.appValidationErrorHandler
+        ? ctx.config.appValidationErrorHandler(ctx)
+        : validationErrorMiddleware;
+
+    expressApp.use(errorHandler);
 
     if (ctx.config.appFinalErrorHandler) {
         const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>

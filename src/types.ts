@@ -82,6 +82,7 @@ declare module '@gravity-ui/nodekit' {
         appLangQueryParamName?: string;
         appLangByTld?: Record<string, string | undefined>;
         appGetLangByHostname?: (hostname: string) => string | undefined;
+        appValidationErrorHandler?: (ctx: AppContext) => AppErrorHandler;
     }
 }
 
