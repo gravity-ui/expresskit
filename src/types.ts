@@ -93,11 +93,8 @@ export enum AuthPolicy {
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
     handlerName?: string;
-<<<<<<< HEAD
     disableSelfStats?: boolean;
-=======
     disableCsrf?: boolean;
->>>>>>> d272340 (feat(csrf): add csrf middleware)
 }
 
 export interface AppRouteDescription extends AppRouteParams {
