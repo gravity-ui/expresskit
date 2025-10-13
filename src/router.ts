@@ -14,6 +14,7 @@ import {
     HTTP_METHODS,
     HttpMethod,
 } from './types';
+import {prepareCSRFMiddleware} from './csrf';
 
 import {validationErrorMiddleware} from './validator';
 
@@ -119,6 +120,10 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                         });
                     }
                 }
+
+                setImmediate(() => {
+                    req.originalContext.end();
+                });
             });
 
             next();
@@ -148,6 +153,10 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
 
         if (authHandler) {
             routeMiddleware.push(authHandler);
+
+            if (ctx.config.appCsrfSecret) {
+                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy as AuthPolicy));
+            }
         }
 
         routeMiddleware.push(...(route.afterAuth || []));
