@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.0](https://github.com/gravity-ui/expresskit/compare/v2.7.0...v2.8.0) (2025-10-13)
+
+
+### Features
+
+* **csrf:** add csrf middleware ([#79](https://github.com/gravity-ui/expresskit/issues/79)) ([855e1a1](https://github.com/gravity-ui/expresskit/commit/855e1a1151253b9b2f9343bce5f324277bcd975c))
+
 ## [2.7.0](https://github.com/gravity-ui/expresskit/compare/v2.6.0...v2.7.0) (2025-09-23)
 
 
