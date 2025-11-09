@@ -53,3 +53,32 @@ const config: Partial<AppConfig> = {
 
 export default config;
 ```
+
+## Управление кешированием
+
+По умолчанию ExpressKit устанавливает `no-cache` заголовки на все ответы. Вы можете управлять этим поведением глобально или на уровне маршрута.
+
+### Глобальная конфигурация
+
+```typescript
+const config: Partial<AppConfig> = {
+  expressEnableCaching: true, // Разрешить кеширование по умолчанию
+};
+```
+
+### Конфигурация на уровне маршрута
+
+```typescript
+const app = new ExpressKit(nodekit, {
+  'GET /api/cached': {
+    enableCaching: true, // Разрешить кеширование для этого маршрута
+    handler: (req, res) => res.json({data: 'кешируемые'}),
+  },
+  'GET /api/fresh': {
+    enableCaching: false, // Принудительно no-cache
+    handler: (req, res) => res.json({data: 'всегда свежие'}),
+  },
+});
+```
+
+Настройка `enableCaching` на уровне маршрута переопределяет глобальную. Состояние доступно в `req.routeInfo.enableCaching`.

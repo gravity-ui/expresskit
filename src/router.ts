@@ -91,17 +91,25 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             typeof rawRoute === 'function' ? {handler: rawRoute} : rawRoute;
 
         const {
+            handlerName: routeHandlerName,
             authPolicy: routeAuthPolicy,
+            enableCaching: routeEnableCaching,
             handler: _h,
             beforeAuth: _beforeAuth,
             afterAuth: _afterAuth,
             cspPresets,
             ...restRouteInfo
         } = route;
+
+        const handlerName = routeHandlerName || route.handler.name || UNNAMED_CONTROLLER;
         const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
-        const handlerName = restRouteInfo.handlerName || route.handler.name || UNNAMED_CONTROLLER;
+        const enableCaching =
+            typeof routeEnableCaching === 'boolean'
+                ? routeEnableCaching
+                : Boolean(ctx.config.expressEnableCaching);
+
         const routeInfoMiddleware: AppMiddleware = function routeInfoMiddleware(req, res, next) {
-            Object.assign(req.routeInfo, restRouteInfo, {authPolicy, handlerName});
+            Object.assign(req.routeInfo, restRouteInfo, {handlerName, authPolicy, enableCaching});
 
             res.on('finish', () => {
                 if (req.ctx.config.appTelemetryChEnableSelfStats) {
@@ -129,22 +137,34 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             next();
         };
 
-        const routeMiddleware: AppMiddleware[] = [
-            routeInfoMiddleware,
-            ...(ctx.config.expressCspEnable
-                ? [
-                      cspMiddleware({
-                          appPresets,
-                          routPresets: cspPresets,
-                          reportOnly: ctx.config.expressCspReportOnly,
-                          reportTo: ctx.config.expressCspReportTo,
-                          reportUri: ctx.config.expressCspReportUri,
-                      }),
-                  ]
-                : []),
-            ...(ctx.config.appBeforeAuthMiddleware || []),
-            ...(route.beforeAuth || []),
-        ];
+        const routeMiddleware: AppMiddleware[] = [routeInfoMiddleware];
+
+        if (!enableCaching) {
+            const cacheMiddleware: AppMiddleware = (_req, res, next) => {
+                res.setHeader('Surrogate-Control', 'no-store');
+                res.setHeader(
+                    'Cache-Control',
+                    'no-store, max-age=0, must-revalidate, proxy-revalidate',
+                );
+                next();
+            };
+            routeMiddleware.push(cacheMiddleware);
+        }
+
+        if (ctx.config.expressCspEnable) {
+            routeMiddleware.push(
+                cspMiddleware({
+                    appPresets,
+                    routPresets: cspPresets,
+                    reportOnly: ctx.config.expressCspReportOnly,
+                    reportTo: ctx.config.expressCspReportTo,
+                    reportUri: ctx.config.expressCspReportUri,
+                }),
+            );
+        }
+
+        routeMiddleware.push(...(ctx.config.appBeforeAuthMiddleware || []));
+        routeMiddleware.push(...(route.beforeAuth || []));
 
         const authHandler =
             authPolicy === AuthPolicy.disabled

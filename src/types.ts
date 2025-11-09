@@ -65,6 +65,8 @@ declare module '@gravity-ui/nodekit' {
         expressCspReportTo?: CSPMiddlewareParams['reportTo'];
         expressCspReportUri?: CSPMiddlewareParams['reportUri'];
 
+        expressEnableCaching?: boolean;
+
         appCsrfSecret?: string | string[];
         appCsrfLifetime?: number;
         appCsrfHeaderName?: string;
@@ -75,6 +77,7 @@ declare module '@gravity-ui/nodekit' {
         appLangQueryParamName?: string;
         appLangByTld?: Record<string, string | undefined>;
         appGetLangByHostname?: (hostname: string) => string | undefined;
+
         appValidationErrorHandler?: (ctx: AppContext) => AppErrorHandler;
     }
 
@@ -95,6 +98,7 @@ export interface AppRouteParams {
     handlerName?: string;
     disableSelfStats?: boolean;
     disableCsrf?: boolean;
+    enableCaching?: boolean;
 }
 
 export interface AppRouteDescription extends AppRouteParams {
