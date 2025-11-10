@@ -112,19 +112,19 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             Object.assign(req.routeInfo, restRouteInfo, {handlerName, authPolicy, enableCaching});
 
             res.on('finish', () => {
-                if (req.ctx.config.appTelemetryChEnableSelfStats) {
+                if (req.originalContext.config.appTelemetryChEnableSelfStats) {
                     const disableSelfStats = Boolean(req.routeInfo.disableSelfStats);
 
                     if (!disableSelfStats) {
-                        req.ctx.stats({
+                        req.originalContext.stats({
                             service: 'self',
                             action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
                             responseStatus: res.statusCode,
-                            requestId: req.ctx.get(REQUEST_ID_PARAM_NAME) || '',
+                            requestId: req.originalContext.get(REQUEST_ID_PARAM_NAME) || '',
                             requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
                             requestMethod: req.method,
                             requestUrl: req.originalUrl,
-                            traceId: req.ctx.getTraceId() || '',
+                            traceId: req.originalContext.getTraceId() || '',
                         });
                     }
                 }
