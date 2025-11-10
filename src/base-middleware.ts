@@ -7,9 +7,11 @@ import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
     expressApp.use((req, res, next) => {
         try {
-            const requestId = (req.headers[DEFAULT_REQUEST_ID_HEADER] || uuidv4()) as string;
+            const requestIdHeaderName =
+                ctx.config.expressRequestIdHeaderName || DEFAULT_REQUEST_ID_HEADER;
+            const requestId = (req.headers[requestIdHeaderName] as string) || uuidv4();
             req.id = requestId;
-            res.setHeader(DEFAULT_REQUEST_ID_HEADER, requestId);
+            res.setHeader(requestIdHeaderName, requestId);
 
             res.setHeader('Surrogate-Control', 'no-store');
             res.setHeader(
