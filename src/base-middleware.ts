@@ -11,12 +11,6 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.id = requestId;
             res.setHeader(DEFAULT_REQUEST_ID_HEADER, requestId);
 
-            res.setHeader('Surrogate-Control', 'no-store');
-            res.setHeader(
-                'Cache-Control',
-                'no-store, max-age=0, must-revalidate, proxy-revalidate',
-            );
-
             req.routeInfo = {};
 
             const startTime = Date.now();
