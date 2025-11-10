@@ -26,21 +26,24 @@ function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
         const reqCtx = req.ctx;
+        const ctx = reqCtx.create(`${fn.name || `noname-${i}`} middleware`);
+
         let ended = false;
+        req.ctx = ctx;
+
         try {
-            return await reqCtx.call(`${fn.name || `noname-${i}`} middleware`, async (ctx) => {
-                req.ctx = ctx;
-                return await fn(req, res, (...args: unknown[]) => {
-                    req.ctx = reqCtx;
-                    ended = true;
-                    next(...args);
-                });
+            await fn(req, res, (...args: unknown[]) => {
+                ctx.end();
+                req.ctx = reqCtx;
+                ended = true;
+                next(...args);
             });
         } catch (error) {
-            return next(error);
-        } finally {
             if (!ended) {
+                ctx.fail(error);
                 req.ctx = reqCtx;
+                next(error);
+                return;
             }
         }
     };
