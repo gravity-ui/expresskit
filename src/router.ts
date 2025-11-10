@@ -3,20 +3,16 @@ import {Express, Router} from 'express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
-    AppErrorHandler,
     AppMiddleware,
     AppMountDescription,
     AppRouteDescription,
     AppRouteHandler,
     AppRoutes,
     AuthPolicy,
-    ExpressFinalError,
     HTTP_METHODS,
     HttpMethod,
 } from './types';
 import {prepareCSRFMiddleware} from './csrf';
-
-import {validationErrorMiddleware} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -201,25 +197,4 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             expressApp[method](routePath, wrappedMiddleware, handler);
         }
     });
-
-    const errorHandler = ctx.config.appValidationErrorHandler
-        ? ctx.config.appValidationErrorHandler(ctx)
-        : validationErrorMiddleware;
-
-    expressApp.use(errorHandler);
-
-    if (ctx.config.appFinalErrorHandler) {
-        const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
-            Promise.resolve(ctx.config.appFinalErrorHandler?.(error, req, res, next)).catch(next);
-        expressApp.use(appFinalRequestHandler);
-    }
-
-    const finalRequestHandler: AppErrorHandler = (error: ExpressFinalError, _, res, __) => {
-        const errorDescription = 'Unhandled error during request processing';
-        ctx.logError(errorDescription, error);
-        const statusCode = (error && error.statusCode) || 500;
-        res.status(statusCode).send(statusCode === 400 ? 'Bad request' : 'Internal server error');
-    };
-
-    expressApp.use(finalRequestHandler);
 }

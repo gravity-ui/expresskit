@@ -40,16 +40,16 @@ export const ValidationErrorContract = {
 } satisfies ErrorContract;
 
 export const validationErrorMiddleware = withErrorContract(ValidationErrorContract)((
-    err,
+    error,
     _req,
     res,
     next,
 ) => {
-    if (err instanceof ValidationError) {
+    if (error instanceof ValidationError) {
         if (!res.headersSent) {
-            const zodError = err.zodError as z.ZodError | undefined;
+            const zodError = error.zodError as z.ZodError | undefined;
             res.sendError(400, {
-                error: err.message || 'Validation error',
+                error: error.message || 'Validation error',
                 code: 'VALIDATION_FAILED',
                 issues: zodError?.issues.map((issue: z.ZodIssue) => ({
                     path: issue.path,
@@ -58,15 +58,15 @@ export const validationErrorMiddleware = withErrorContract(ValidationErrorContra
                 })),
             });
         }
-    } else if (err instanceof ResponseValidationError) {
+    } else if (error instanceof ResponseValidationError) {
         if (!res.headersSent) {
             res.sendError(500, {
-                error: err.message || 'Internal Server Error',
+                error: error.message || 'Internal Server Error',
                 code: 'RESPONSE_VALIDATION_FAILED',
             });
         }
     } else {
-        next(err);
+        next(error);
         return;
     }
 });

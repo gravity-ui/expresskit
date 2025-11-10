@@ -46,7 +46,9 @@ declare module '@gravity-ui/nodekit' {
         appPort?: number;
         appSocket?: string;
 
+        // TODO(DakEnviy): Change this to AppErrorHandler in the next major release
         appFinalErrorHandler?: ErrorRequestHandler;
+        // TODO(DakEnviy): Change this to AppAuthHandler in the next major release
         appAuthHandler?: RequestHandler;
         appAuthPolicy?: `${AuthPolicy}`;
 
