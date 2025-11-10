@@ -56,7 +56,7 @@ const UNNAMED_CONTROLLER = 'unnamedController';
 function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     const handlerNameLocal = handlerName || fn.name || UNNAMED_CONTROLLER;
 
-    const handler: AppMiddleware = (req, res, next) => {
+    const handler: AppMiddleware = async (req, res, next) => {
         req.ctx = req.originalContext.create(handlerNameLocal);
         if (req.routeInfo.handlerName !== handlerNameLocal) {
             if (req.routeInfo.handlerName === UNNAMED_CONTROLLER) {
@@ -65,12 +65,16 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
                 req.routeInfo.handlerName = `${req.routeInfo.handlerName}(${handlerNameLocal})`;
             }
         }
-        Promise.resolve(fn(req, res))
-            .catch(next)
-            .finally(() => {
-                req.ctx.end();
-                req.ctx = req.originalContext;
-            });
+        try {
+            await fn(req, res);
+            req.ctx.end();
+            req.ctx = req.originalContext;
+        } catch (error) {
+            req.ctx.fail(error);
+            req.ctx = req.originalContext;
+            next(error);
+            return;
+        }
     };
 
     Object.defineProperty(handler, 'name', {value: handlerNameLocal});
