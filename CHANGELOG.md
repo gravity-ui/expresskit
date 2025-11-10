@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.9.0](https://github.com/gravity-ui/expresskit/compare/v2.8.0...v2.9.0) (2025-11-10)
+
+
+### Features
+
+* add caching control ([#85](https://github.com/gravity-ui/expresskit/issues/85)) ([182169f](https://github.com/gravity-ui/expresskit/commit/182169f062fa3f75307362b24c11d3e1851b207c))
+* add exports for HttpMethod and setLang ([#84](https://github.com/gravity-ui/expresskit/issues/84)) ([126f32a](https://github.com/gravity-ui/expresskit/commit/126f32a322bfb71b3661ba589dfaa6b8dea85a9a))
+
+
+### Bug Fixes
+
+* support expressRequestIdHeaderName config option ([#86](https://github.com/gravity-ui/expresskit/issues/86)) ([46a2363](https://github.com/gravity-ui/expresskit/commit/46a2363322ad050dc61b0b623f226cbdeb4bcbba))
+
 ## [2.8.0](https://github.com/gravity-ui/expresskit/compare/v2.7.0...v2.8.0) (2025-10-13)
 
 
