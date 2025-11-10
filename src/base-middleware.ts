@@ -86,7 +86,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             next();
             return;
         } catch (error) {
-            ctx.logError('Error during server setup', error);
+            ctx.logError('Error during request setup', error);
             if (req.ctx) {
                 req.ctx.setTag('error', true);
                 req.ctx.end();

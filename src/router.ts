@@ -158,7 +158,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             routeMiddleware.push(
                 cspMiddleware({
                     appPresets,
-                    routPresets: cspPresets,
+                    routePresets: cspPresets,
                     reportOnly: ctx.config.expressCspReportOnly,
                     reportTo: ctx.config.expressCspReportTo,
                     reportUri: ctx.config.expressCspReportUri,
