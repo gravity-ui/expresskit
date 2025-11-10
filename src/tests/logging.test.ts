@@ -415,4 +415,66 @@ describe('log system', () => {
 
         expect(log?.spanId).toBeTruthy();
     });
+
+    it('should use custom request id header name when expressRequestIdHeaderName is set', async () => {
+        const customHeaderName = 'x-custom-request-id';
+        const {app, logger} = setupApp({
+            config: {
+                expressRequestIdHeaderName: customHeaderName,
+            },
+        });
+
+        const agent = request.agent(app.express);
+
+        const requestId = Math.random().toString();
+
+        const response = await agent.get('/get').set(customHeaderName, requestId);
+
+        // Check that response contains custom header
+        expect(response.headers[customHeaderName]).toBe(requestId);
+
+        // last log with response
+        let log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // Check response log with custom header
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request completed [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+            },
+            res: {
+                statusCode: '200',
+                responseTime: expect.any(Number),
+                headers: {
+                    [customHeaderName]: requestId,
+                },
+            },
+        });
+
+        // first log with request
+        log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+
+        // Check request log contains correct requestId from custom header
+        expect(log).toMatchObject({
+            msg: `[Express GET] Request started [${requestId}]`,
+            level: 30,
+            name: APP_NAME,
+            time: expect.any(Number),
+            req: {
+                id: requestId,
+                method: 'GET',
+                url: '/get',
+                headers: {
+                    [customHeaderName]: requestId,
+                },
+                remoteAddress: expect.any(String),
+                remotePort: expect.any(Number),
+            },
+        });
+    });
 });
