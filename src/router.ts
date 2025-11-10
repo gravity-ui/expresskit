@@ -105,7 +105,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         } = route;
 
         const handlerName = routeHandlerName || route.handler.name || UNNAMED_CONTROLLER;
-        const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
+        const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || `${AuthPolicy.disabled}`;
         const enableCaching =
             typeof routeEnableCaching === 'boolean'
                 ? routeEnableCaching
@@ -178,7 +178,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             routeMiddleware.push(authHandler);
 
             if (ctx.config.appCsrfSecret) {
-                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy as AuthPolicy));
+                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy));
             }
         }
 
