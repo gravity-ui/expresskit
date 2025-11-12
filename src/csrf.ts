@@ -9,7 +9,7 @@ function getUnixTime() {
     return Math.floor(Number(new Date()) / 1000);
 }
 
-export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: AuthPolicy) {
+export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: `${AuthPolicy}`) {
     const {
         appCsrfSecret: secret,
         appCsrfLifetime: lifetime = MONTH_SECONDS,

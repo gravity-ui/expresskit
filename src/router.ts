@@ -3,20 +3,16 @@ import {Express, Router} from 'express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
 import {
-    AppErrorHandler,
     AppMiddleware,
     AppMountDescription,
     AppRouteDescription,
     AppRouteHandler,
     AppRoutes,
     AuthPolicy,
-    ExpressFinalError,
     HTTP_METHODS,
     HttpMethod,
 } from './types';
 import {prepareCSRFMiddleware} from './csrf';
-
-import {validationErrorMiddleware} from './validator';
 
 function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,21 +22,24 @@ function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
         const reqCtx = req.ctx;
+        const ctx = reqCtx.create(`${fn.name || `noname-${i}`} middleware`);
+
         let ended = false;
+        req.ctx = ctx;
+
         try {
-            return await reqCtx.call(`${fn.name || `noname-${i}`} middleware`, async (ctx) => {
-                req.ctx = ctx;
-                return await fn(req, res, (...args: unknown[]) => {
-                    req.ctx = reqCtx;
-                    ended = true;
-                    next(...args);
-                });
+            await fn(req, res, (...args: unknown[]) => {
+                ctx.end();
+                req.ctx = reqCtx;
+                ended = true;
+                next(...args);
             });
         } catch (error) {
-            return next(error);
-        } finally {
             if (!ended) {
+                ctx.fail(error);
                 req.ctx = reqCtx;
+                next(error);
+                return;
             }
         }
     };
@@ -53,7 +52,7 @@ const UNNAMED_CONTROLLER = 'unnamedController';
 function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     const handlerNameLocal = handlerName || fn.name || UNNAMED_CONTROLLER;
 
-    const handler: AppMiddleware = (req, res, next) => {
+    const handler: AppMiddleware = async (req, res, next) => {
         req.ctx = req.originalContext.create(handlerNameLocal);
         if (req.routeInfo.handlerName !== handlerNameLocal) {
             if (req.routeInfo.handlerName === UNNAMED_CONTROLLER) {
@@ -62,12 +61,16 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
                 req.routeInfo.handlerName = `${req.routeInfo.handlerName}(${handlerNameLocal})`;
             }
         }
-        Promise.resolve(fn(req, res))
-            .catch(next)
-            .finally(() => {
-                req.ctx.end();
-                req.ctx = req.originalContext;
-            });
+        try {
+            await fn(req, res);
+            req.ctx.end();
+            req.ctx = req.originalContext;
+        } catch (error) {
+            req.ctx.fail(error);
+            req.ctx = req.originalContext;
+            next(error);
+            return;
+        }
     };
 
     Object.defineProperty(handler, 'name', {value: handlerNameLocal});
@@ -102,7 +105,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         } = route;
 
         const handlerName = routeHandlerName || route.handler.name || UNNAMED_CONTROLLER;
-        const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || AuthPolicy.disabled;
+        const authPolicy = routeAuthPolicy || ctx.config.appAuthPolicy || `${AuthPolicy.disabled}`;
         const enableCaching =
             typeof routeEnableCaching === 'boolean'
                 ? routeEnableCaching
@@ -155,7 +158,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             routeMiddleware.push(
                 cspMiddleware({
                     appPresets,
-                    routPresets: cspPresets,
+                    routePresets: cspPresets,
                     reportOnly: ctx.config.expressCspReportOnly,
                     reportTo: ctx.config.expressCspReportTo,
                     reportUri: ctx.config.expressCspReportUri,
@@ -175,7 +178,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             routeMiddleware.push(authHandler);
 
             if (ctx.config.appCsrfSecret) {
-                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy as AuthPolicy));
+                routeMiddleware.push(prepareCSRFMiddleware(ctx, authPolicy));
             }
         }
 
@@ -194,25 +197,4 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
             expressApp[method](routePath, wrappedMiddleware, handler);
         }
     });
-
-    const errorHandler = ctx.config.appValidationErrorHandler
-        ? ctx.config.appValidationErrorHandler(ctx)
-        : validationErrorMiddleware;
-
-    expressApp.use(errorHandler);
-
-    if (ctx.config.appFinalErrorHandler) {
-        const appFinalRequestHandler: AppErrorHandler = (error, req, res, next) =>
-            Promise.resolve(ctx.config.appFinalErrorHandler?.(error, req, res, next)).catch(next);
-        expressApp.use(appFinalRequestHandler);
-    }
-
-    const finalRequestHandler: AppErrorHandler = (error: ExpressFinalError, _, res, __) => {
-        const errorDescription = 'Unhandled error during request processing';
-        ctx.logError(errorDescription, error);
-        const statusCode = (error && error.statusCode) || 500;
-        res.status(statusCode).send(statusCode === 400 ? 'Bad request' : 'Internal server error');
-    };
-
-    expressApp.use(finalRequestHandler);
 }

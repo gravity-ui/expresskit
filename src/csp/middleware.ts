@@ -7,7 +7,7 @@ import type {CSPPreset} from '.';
 
 export interface CSPMiddlewareParams extends Omit<ExpressCSPParams, 'presets'> {
     appPresets: CSPPreset;
-    routPresets?:
+    routePresets?:
         | CSPPreset
         | ((params: {
               getDefaultPresets: typeof getDefaultPresets;
@@ -17,11 +17,11 @@ export interface CSPMiddlewareParams extends Omit<ExpressCSPParams, 'presets'> {
 
 export function cspMiddleware(options: CSPMiddlewareParams) {
     let presets: CSPPreset = options.appPresets;
-    if (options.routPresets) {
+    if (options.routePresets) {
         presets =
-            typeof options.routPresets === 'function'
-                ? options.routPresets({getDefaultPresets, appPresets: presets})
-                : options.routPresets;
+            typeof options.routePresets === 'function'
+                ? options.routePresets({getDefaultPresets, appPresets: presets})
+                : options.routePresets;
     }
 
     return expressCspHeader({...options, presets});
