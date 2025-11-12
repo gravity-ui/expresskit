@@ -1,4 +1,4 @@
-import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
+import {type AppContext, REQUEST_ID_PARAM_NAME, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import {Express, Router} from 'express';
 
 import {cspMiddleware, getAppPresets} from './csp/middleware';
@@ -123,11 +123,13 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                             service: 'self',
                             action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
                             responseStatus: res.statusCode,
+                            // TODO(DakEnviy): Add responseSize
                             requestId: req.originalContext.get(REQUEST_ID_PARAM_NAME) || '',
-                            requestTime: req.originalContext.getTime(), //We have to use req.originalContext here to get full time
+                            requestTime: req.originalContext.getTime(), // We have to use req.originalContext here to get full time
                             requestMethod: req.method,
-                            requestUrl: req.originalUrl,
+                            requestUrl: ctx.utils.redactSensitiveQueryParams(req.originalUrl),
                             traceId: req.originalContext.getTraceId() || '',
+                            userId: req.originalContext.get(USER_ID_PARAM_NAME) || '',
                         });
                     }
                 }
