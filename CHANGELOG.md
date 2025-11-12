@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.10.0](https://github.com/gravity-ui/expresskit/compare/v2.9.0...v2.10.0) (2025-11-12)
+
+
+### Features
+
+* add userId to self stats and redact sensitive query params for requestUrl ([#90](https://github.com/gravity-ui/expresskit/issues/90)) ([91e84f2](https://github.com/gravity-ui/expresskit/commit/91e84f2618b693070a8ae08060dc19ecf0cdb1bf))
+
+
+### Bug Fixes
+
+* fix closing context for middlewares and route handlers and fix error handling ([#88](https://github.com/gravity-ui/expresskit/issues/88)) ([12cac40](https://github.com/gravity-ui/expresskit/commit/12cac4060d6c70fb85fe82954ebcfc159cc4a485))
+* use originalContext for stats ([#89](https://github.com/gravity-ui/expresskit/issues/89)) ([554de8f](https://github.com/gravity-ui/expresskit/commit/554de8f40d82603fc5dd8396d8136c277d4e4a2c))
+
 ## [2.9.0](https://github.com/gravity-ui/expresskit/compare/v2.8.0...v2.9.0) (2025-11-10)
 
 
