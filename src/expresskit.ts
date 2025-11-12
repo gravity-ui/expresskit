@@ -9,7 +9,7 @@ import express, {Express} from 'express';
 import {setupBaseMiddleware} from './base-middleware';
 import {setupParsers} from './parsers';
 import {setupRoutes} from './router';
-import type {AppRoutes} from './types';
+import type {AppRoutes, SetupParams} from './types';
 import {setupLangMiddleware} from './lang/lang-middleware';
 import {setupErrorHandlers} from './error-handlers';
 
@@ -21,7 +21,7 @@ export class ExpressKit {
     express: Express;
     httpServer?: Server;
 
-    constructor(nodekit: NodeKit, routes: AppRoutes) {
+    constructor(nodekit: NodeKit, routes: AppRoutes, setup?: (params: SetupParams) => void) {
         this.nodekit = nodekit;
         this.config = nodekit.config;
 
@@ -35,11 +35,22 @@ export class ExpressKit {
 
         this.express.get('/__version', (_, res) => res.send({version: this.config.appVersion}));
 
-        setupBaseMiddleware(this.nodekit.ctx, this.express);
-        setupLangMiddleware(this.nodekit.ctx, this.express);
-        setupParsers(this.nodekit.ctx, this.express);
-        setupRoutes(this.nodekit.ctx, this.express, routes);
-        setupErrorHandlers(this.nodekit.ctx, this.express);
+        if (setup) {
+            setup({
+                express: this.express,
+                setupBaseMiddleware: () => setupBaseMiddleware(this.nodekit.ctx, this.express),
+                setupLangMiddleware: () => setupLangMiddleware(this.nodekit.ctx, this.express),
+                setupParsers: () => setupParsers(this.nodekit.ctx, this.express),
+                setupRoutes: () => setupRoutes(this.nodekit.ctx, this.express, routes),
+                setupErrorHandlers: () => setupErrorHandlers(this.nodekit.ctx, this.express),
+            });
+        } else {
+            setupBaseMiddleware(this.nodekit.ctx, this.express);
+            setupLangMiddleware(this.nodekit.ctx, this.express);
+            setupParsers(this.nodekit.ctx, this.express);
+            setupRoutes(this.nodekit.ctx, this.express, routes);
+            setupErrorHandlers(this.nodekit.ctx, this.express);
+        }
 
         const appSocket = this.getAppSocket();
         const listenTarget = this.getListenTarget(appSocket);
