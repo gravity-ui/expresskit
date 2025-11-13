@@ -13,6 +13,7 @@ export type {
     AppErrorHandler,
     NextFunction,
     HttpMethod,
+    SetupParams,
 } from './types';
 export {AuthPolicy} from './types';
 
