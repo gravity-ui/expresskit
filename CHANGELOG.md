@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.0](https://github.com/gravity-ui/expresskit/compare/v2.10.0...v2.11.0) (2025-11-13)
+
+
+### Features
+
+* add custom setup ([#92](https://github.com/gravity-ui/expresskit/issues/92)) ([fc1d711](https://github.com/gravity-ui/expresskit/commit/fc1d7119dae7407028b5262c751c726ed5403958))
+
 ## [2.10.0](https://github.com/gravity-ui/expresskit/compare/v2.9.0...v2.10.0) (2025-11-12)
 
 
