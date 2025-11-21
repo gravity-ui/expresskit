@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.11.1](https://github.com/gravity-ui/expresskit/compare/v2.11.0...v2.11.1) (2025-11-21)
+
+
+### Bug Fixes
+
+* use unknown type for middleware result ([#95](https://github.com/gravity-ui/expresskit/issues/95)) ([82523b8](https://github.com/gravity-ui/expresskit/commit/82523b86ebf64819fd0248ae8d5546009e57fd54))
+
 ## [2.11.0](https://github.com/gravity-ui/expresskit/compare/v2.10.0...v2.11.0) (2025-11-13)
 
 
