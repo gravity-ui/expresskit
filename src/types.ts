@@ -149,12 +149,12 @@ export interface AppRouteHandler {
     (
         req: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
         res: Response<any, Record<string, any>>,
-    ): void | Promise<void>;
+    ): unknown;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export interface AppMiddleware {
-    (req: Request, res: Response, next: NextFunction): void | Promise<void>;
+    (req: Request, res: Response, next: NextFunction): unknown;
 }
 
 export interface AppAuthHandler extends AppMiddleware {}
@@ -164,12 +164,7 @@ export interface ExpressFinalError extends Error {
 }
 
 export interface AppErrorHandler {
-    (
-        error: ExpressFinalError,
-        req: Request,
-        res: Response,
-        next: NextFunction,
-    ): void | Promise<void>;
+    (error: ExpressFinalError, req: Request, res: Response, next: NextFunction): unknown;
 }
 
 export interface SetupParams {
