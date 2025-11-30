@@ -20,7 +20,7 @@
 ```typescript
 import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit';
 import {NodeKit} from '@gravity-ui/nodekit';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 
 // Определите ваши схемы Zod
 const TaskSchema = z.object({
@@ -198,7 +198,7 @@ import {
   ValidationError,
   ResponseValidationError,
 } from '@gravity-ui/expresskit';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 import {NodeKit} from '@gravity-ui/nodekit';
 
 // Определите ваш контракт ошибок с типизированными ответами об ошибках
