@@ -83,6 +83,6 @@ const app = new ExpressKit(nodekit, {
 
 Настройка `enableCaching` на уровне маршрута переопределяет глобальную. Состояние доступно в `req.routeInfo.enableCaching`.
 
-## Документация
+## Валидация запросов и сериализация ответов
 
-- [Валидация запросов и сериализация ответов](https://github.com/gravity-ui/expresskit/blob/main/docs/VALIDATOR-ru.md) - Узнайте, как использовать схемы Zod для автоматической валидации запросов и сериализации ответов.
+- [Валидация запросов и сериализация ответов](https://github.com/gravity-ui/expresskit/blob/main/docs/VALIDATOR-ru.md) - использование zod для автоматической валидации запросов и сериализации ответов.
