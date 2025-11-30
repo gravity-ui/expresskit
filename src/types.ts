@@ -1,4 +1,4 @@
-import type {AppContext} from '@gravity-ui/nodekit';
+import type {AppContext, NodeKit} from '@gravity-ui/nodekit';
 import type bodyParser from 'body-parser';
 import type {
     ErrorRequestHandler,
@@ -169,10 +169,11 @@ export interface AppErrorHandler {
 
 export interface SetupParams {
     express: Express;
+    nodekit: NodeKit;
     setupBaseMiddleware: () => void;
     setupLangMiddleware: () => void;
     setupParsers: () => void;
-    setupRoutes: () => void;
+    setupRoutes: (routes: AppRoutes) => void;
     setupErrorHandlers: () => void;
 }
 

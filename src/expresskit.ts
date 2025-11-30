@@ -38,10 +38,12 @@ export class ExpressKit {
         if (setup) {
             setup({
                 express: this.express,
+                nodekit: this.nodekit,
                 setupBaseMiddleware: () => setupBaseMiddleware(this.nodekit.ctx, this.express),
                 setupLangMiddleware: () => setupLangMiddleware(this.nodekit.ctx, this.express),
                 setupParsers: () => setupParsers(this.nodekit.ctx, this.express),
-                setupRoutes: () => setupRoutes(this.nodekit.ctx, this.express, routes),
+                setupRoutes: (routesToSetup: AppRoutes) =>
+                    setupRoutes(this.nodekit.ctx, this.express, routesToSetup),
                 setupErrorHandlers: () => setupErrorHandlers(this.nodekit.ctx, this.express),
             });
         } else {
