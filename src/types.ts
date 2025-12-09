@@ -170,10 +170,11 @@ export interface AppErrorHandler {
 export interface SetupParams {
     express: Express;
     nodekit: NodeKit;
+    routes: AppRoutes;
     setupBaseMiddleware: () => void;
     setupLangMiddleware: () => void;
     setupParsers: () => void;
-    setupRoutes: (routes: AppRoutes) => void;
+    setupRoutes: (routes?: AppRoutes) => void;
     setupErrorHandlers: () => void;
 }
 
