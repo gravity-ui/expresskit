@@ -21,5 +21,11 @@ export {setLang} from './lang/set-lang';
 
 export * from './csp';
 
-export {withContract, ValidationError, getContract, getErrorContract} from './validator';
+export {
+    withContract,
+    ValidationError,
+    getContract,
+    getErrorContract,
+    withErrorContract,
+} from './validator';
 export type {ContractRequest, ContractResponse, RouteContract} from './validator';
