@@ -52,6 +52,7 @@ declare module '@gravity-ui/nodekit' {
         // TODO(DakEnviy): Change this to AppAuthHandler in the next major release
         appAuthHandler?: RequestHandler;
         appAuthPolicy?: `${AuthPolicy}`;
+        appAuthDisableRedirect?: boolean;
 
         appBeforeAuthMiddleware?: RequestHandler[];
         appAfterAuthMiddleware?: RequestHandler[];
@@ -92,12 +93,12 @@ declare module '@gravity-ui/nodekit' {
 export enum AuthPolicy {
     disabled = 'disabled',
     optional = 'optional',
-    redirect = 'redirect',
     required = 'required',
 }
 
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
+    authDisableRedirect?: boolean;
     handlerName?: string;
     disableSelfStats?: boolean;
     disableCsrf?: boolean;
