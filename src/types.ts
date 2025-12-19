@@ -1,14 +1,6 @@
 import type {AppContext} from '@gravity-ui/nodekit';
 import type bodyParser from 'body-parser';
-import type {
-    ErrorRequestHandler,
-    Express,
-    NextFunction,
-    Request,
-    RequestHandler,
-    Response,
-    Router,
-} from 'express';
+import type {Express, NextFunction, Request, Response, Router} from 'express';
 
 import type {CSPPreset} from './csp';
 import type {getDefaultPresets} from './csp/default-presets';
@@ -47,15 +39,13 @@ declare module '@gravity-ui/nodekit' {
         appPort?: number;
         appSocket?: string;
 
-        // TODO(DakEnviy): Change this to AppErrorHandler in the next major release
-        appFinalErrorHandler?: ErrorRequestHandler;
-        // TODO(DakEnviy): Change this to AppAuthHandler in the next major release
-        appAuthHandler?: RequestHandler;
+        appFinalErrorHandler?: AppErrorHandler;
+        appAuthHandler?: AppAuthHandler;
         appAuthPolicy?: `${AuthPolicy}`;
         appAuthDisableRedirect?: boolean;
 
-        appBeforeAuthMiddleware?: RequestHandler[];
-        appAfterAuthMiddleware?: RequestHandler[];
+        appBeforeAuthMiddleware?: AppMiddleware[];
+        appAfterAuthMiddleware?: AppMiddleware[];
 
         appTelemetryChEnableSelfStats?: boolean;
 
