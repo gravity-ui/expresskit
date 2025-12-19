@@ -14,9 +14,10 @@ import {
 } from './types';
 import {prepareCSRFMiddleware} from './csrf';
 
-function isAllowedMethod(method: string): method is HttpMethod | 'mount' {
+// Methods are lowercased to use it in `expressApp[method]`
+function isAllowedMethod(method: string): method is Lowercase<HttpMethod> | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return HTTP_METHODS.includes(method as any) || method === 'mount';
+    return HTTP_METHODS.includes(method.toUpperCase() as any) || method === 'mount';
 }
 
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
@@ -87,7 +88,9 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
         const routePath = routeKeyParts[1];
 
         if (!isAllowedMethod(method)) {
-            throw new Error(`Unknown http method "${method}" for route "${routePath}"`);
+            throw new Error(
+                `Unknown http method "${method.toUpperCase()}" for route "${routePath}"`,
+            );
         }
 
         const route: AppMountDescription | AppRouteDescription =
