@@ -118,8 +118,7 @@ export interface AppRouteDescription extends AppRouteParams {
           }) => CSPPreset);
 }
 
-// TODO Make this uppercase in the next major release
-export const HTTP_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
+export const HTTP_METHODS = ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export interface AppMountHandler {
@@ -134,7 +133,7 @@ export interface AppMountDescription extends Omit<AppRouteDescription, 'handler'
 }
 
 export interface AppRoutes {
-    [methodAndPath: `${Uppercase<HttpMethod>} ${string}`]: AppRouteHandler | AppRouteDescription;
+    [methodAndPath: `${HttpMethod} ${string}`]: AppRouteHandler | AppRouteDescription;
     [mountPath: `MOUNT ${string}`]: AppMountHandler | AppMountDescription;
 }
 
