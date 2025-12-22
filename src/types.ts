@@ -74,7 +74,7 @@ declare module '@gravity-ui/nodekit' {
         appCsrfSecret?: string | string[];
         appCsrfLifetime?: number;
         appCsrfHeaderName?: string;
-        appCsrfMethods?: string[]; // Switch to HttpMethod[] in the next major release
+        appCsrfMethods?: HttpMethod[];
 
         appAllowedLangs?: string[];
         appDefaultLang?: string;
