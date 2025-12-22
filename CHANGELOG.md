@@ -1,5 +1,27 @@
 # Changelog
 
+## [3.0.0](https://github.com/gravity-ui/expresskit/compare/v2.11.1...v3.0.0) (2025-12-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* use internal types for appFinalErrorHandler and appAuthHandler ([#102](https://github.com/gravity-ui/expresskit/issues/102))
+* **csrf:** change `appCsrfMethods` type to `HttpMethod[]` ([#104](https://github.com/gravity-ui/expresskit/issues/104))
+* make http methods uppercase ([#103](https://github.com/gravity-ui/expresskit/issues/103))
+* remove redirect from AuthPolicy and add authDisable redirect option ([#101](https://github.com/gravity-ui/expresskit/issues/101))
+
+### Features
+
+* remove redirect from AuthPolicy and add authDisable redirect option ([#101](https://github.com/gravity-ui/expresskit/issues/101)) ([17d113e](https://github.com/gravity-ui/expresskit/commit/17d113eb6e92d24432aa27e42ef58dea7be1065e))
+
+
+### Bug Fixes
+
+* **csrf:** change `appCsrfMethods` type to `HttpMethod[]` ([#104](https://github.com/gravity-ui/expresskit/issues/104)) ([31bb591](https://github.com/gravity-ui/expresskit/commit/31bb5914ab720d5eb7818a5b4c4ced86b6fcb35b))
+* expose withErrorContract ([#99](https://github.com/gravity-ui/expresskit/issues/99)) ([c115085](https://github.com/gravity-ui/expresskit/commit/c115085abc6936b18505bb5b4bbb5faf5e9c0eb4))
+* make http methods uppercase ([#103](https://github.com/gravity-ui/expresskit/issues/103)) ([501210d](https://github.com/gravity-ui/expresskit/commit/501210de36b0e545c885fa93aa8b959e6892f9af))
+* use internal types for appFinalErrorHandler and appAuthHandler ([#102](https://github.com/gravity-ui/expresskit/issues/102)) ([6082a25](https://github.com/gravity-ui/expresskit/commit/6082a253c43b20d8345b7ecb4e9f0b9363a54122))
+
 ## [2.11.1](https://github.com/gravity-ui/expresskit/compare/v2.11.0...v2.11.1) (2025-11-21)
 
 
