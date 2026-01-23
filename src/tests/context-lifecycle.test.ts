@@ -245,6 +245,40 @@ describe('Context Lifecycle', () => {
             expect(ctxDuringHandler).not.toBe(originalCtxDuringHandler);
             expect(ctxDuringHandler!.parentContext).toBe(originalCtxDuringHandler);
         });
+
+        it('should close context when client aborts connection', async () => {
+            let handlerCtx: AppContext | null = null;
+            let finishEventFired = false;
+
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {
+                'GET /test': (req: Request, res: Response) => {
+                    handlerCtx = req.originalContext;
+
+                    res.on('finish', () => {
+                        finishEventFired = true;
+                    });
+
+                    // Simulate client abort by destroying the socket
+                    req.socket.destroy();
+                },
+            });
+
+            await request
+                .agent(app.express)
+                .get('/test')
+                .catch(() => {
+                    // Ignore connection error from destroyed socket
+                });
+
+            // We simulate socket destruction, so supertest doesn't wait for proper request completion.
+            // Need to explicitly wait for setImmediate in 'close' event handler to execute context cleanup.
+            await new Promise((resolve) => setImmediate(resolve));
+
+            expect(handlerCtx).toBeTruthy();
+            expect(finishEventFired).toBe(false);
+            expect(handlerCtx!.abortSignal.aborted).toBe(true);
+        });
     });
 
     describe('Context Chain', () => {
