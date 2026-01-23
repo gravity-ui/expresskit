@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/gravity-ui/expresskit/compare/v3.0.0...v3.0.1) (2026-01-23)
+
+
+### Bug Fixes
+
+* fix closing context on request close ([#106](https://github.com/gravity-ui/expresskit/issues/106)) ([929bf0b](https://github.com/gravity-ui/expresskit/commit/929bf0bbbe3687c847cce884c7ac01591472f7a8))
+
 ## [3.0.0](https://github.com/gravity-ui/expresskit/compare/v2.11.1...v3.0.0) (2025-12-22)
 
 
