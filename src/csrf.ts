@@ -1,6 +1,6 @@
 import {AppContext, USER_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import crypto from 'crypto';
-import {AuthPolicy, NextFunction, Request, Response} from './types';
+import {AuthPolicy, HttpMethod, NextFunction, Request, Response} from './types';
 import {CSRF_TOKEN_CONTEXT_KEY} from './constants';
 
 const MONTH_SECONDS = 30 * 24 * 60 * 60;
@@ -75,7 +75,9 @@ export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: `${AuthP
         const nonApplicableAuthMethod = Boolean(res.locals.oauth); // TODO we should move to something like res.locals.skipCsrf instead of this
 
         const shouldCheckToken =
-            !isCsrfDisabled && methods.includes(req.method) && !nonApplicableAuthMethod;
+            !isCsrfDisabled &&
+            methods.includes(req.method as HttpMethod) &&
+            !nonApplicableAuthMethod;
 
         if (shouldCheckToken) {
             const headerValue = req.headers[headerName];

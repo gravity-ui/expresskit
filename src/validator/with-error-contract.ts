@@ -10,7 +10,7 @@ export function withErrorContract<TConfig extends ErrorContract>(config: TConfig
             req: ExpressRequest,
             res: ErrorResponse<TConfig>,
             next: (err?: Error) => void,
-        ) => Promise<void> | void,
+        ) => unknown,
     ) {
         const finalHandler: AppErrorHandler = (
             err: Error,

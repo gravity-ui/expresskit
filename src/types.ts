@@ -1,14 +1,6 @@
 import type {AppContext} from '@gravity-ui/nodekit';
 import type bodyParser from 'body-parser';
-import type {
-    ErrorRequestHandler,
-    Express,
-    NextFunction,
-    Request,
-    RequestHandler,
-    Response,
-    Router,
-} from 'express';
+import type {Express, NextFunction, Request, Response, Router} from 'express';
 
 import type {CSPPreset} from './csp';
 import type {getDefaultPresets} from './csp/default-presets';
@@ -47,14 +39,13 @@ declare module '@gravity-ui/nodekit' {
         appPort?: number;
         appSocket?: string;
 
-        // TODO(DakEnviy): Change this to AppErrorHandler in the next major release
-        appFinalErrorHandler?: ErrorRequestHandler;
-        // TODO(DakEnviy): Change this to AppAuthHandler in the next major release
-        appAuthHandler?: RequestHandler;
+        appFinalErrorHandler?: AppErrorHandler;
+        appAuthHandler?: AppAuthHandler;
         appAuthPolicy?: `${AuthPolicy}`;
+        appAuthDisableRedirect?: boolean;
 
-        appBeforeAuthMiddleware?: RequestHandler[];
-        appAfterAuthMiddleware?: RequestHandler[];
+        appBeforeAuthMiddleware?: AppMiddleware[];
+        appAfterAuthMiddleware?: AppMiddleware[];
 
         appTelemetryChEnableSelfStats?: boolean;
 
@@ -73,7 +64,7 @@ declare module '@gravity-ui/nodekit' {
         appCsrfSecret?: string | string[];
         appCsrfLifetime?: number;
         appCsrfHeaderName?: string;
-        appCsrfMethods?: string[]; // Switch to HttpMethod[] in the next major release
+        appCsrfMethods?: HttpMethod[];
 
         appAllowedLangs?: string[];
         appDefaultLang?: string;
@@ -92,12 +83,12 @@ declare module '@gravity-ui/nodekit' {
 export enum AuthPolicy {
     disabled = 'disabled',
     optional = 'optional',
-    redirect = 'redirect',
     required = 'required',
 }
 
 export interface AppRouteParams {
     authPolicy?: `${AuthPolicy}`;
+    authDisableRedirect?: boolean;
     handlerName?: string;
     disableSelfStats?: boolean;
     disableCsrf?: boolean;
@@ -117,8 +108,7 @@ export interface AppRouteDescription extends AppRouteParams {
           }) => CSPPreset);
 }
 
-// TODO Make this uppercase in the next major release
-export const HTTP_METHODS = ['get', 'head', 'options', 'post', 'put', 'patch', 'delete'] as const;
+export const HTTP_METHODS = ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export interface AppMountHandler {
@@ -133,7 +123,7 @@ export interface AppMountDescription extends Omit<AppRouteDescription, 'handler'
 }
 
 export interface AppRoutes {
-    [methodAndPath: `${Uppercase<HttpMethod>} ${string}`]: AppRouteHandler | AppRouteDescription;
+    [methodAndPath: `${HttpMethod} ${string}`]: AppRouteHandler | AppRouteDescription;
     [mountPath: `MOUNT ${string}`]: AppMountHandler | AppMountDescription;
 }
 
@@ -149,12 +139,12 @@ export interface AppRouteHandler {
     (
         req: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>,
         res: Response<any, Record<string, any>>,
-    ): void | Promise<void>;
+    ): unknown;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export interface AppMiddleware {
-    (req: Request, res: Response, next: NextFunction): void | Promise<void>;
+    (req: Request, res: Response, next: NextFunction): unknown;
 }
 
 export interface AppAuthHandler extends AppMiddleware {}
@@ -164,12 +154,7 @@ export interface ExpressFinalError extends Error {
 }
 
 export interface AppErrorHandler {
-    (
-        error: ExpressFinalError,
-        req: Request,
-        res: Response,
-        next: NextFunction,
-    ): void | Promise<void>;
+    (error: ExpressFinalError, req: Request, res: Response, next: NextFunction): unknown;
 }
 
 export interface SetupParams {

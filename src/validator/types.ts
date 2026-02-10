@@ -74,7 +74,7 @@ interface TypedResponseMethods<TContent extends Record<number, z.ZodType | {sche
         data?: ExtractSchemaFromResponseDef<TContent[S]> extends never
             ? undefined
             : InferDataFromResponseDef<TContent[S]>, // Exact not always needed for serialize, but good for consistency
-    ) => void;
+    ) => Promise<void>;
 }
 
 export interface RouteContract {

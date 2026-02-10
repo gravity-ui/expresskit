@@ -20,7 +20,7 @@ Here's a common example of using `withContract` for automatic request validation
 ```typescript
 import {ExpressKit, withContract, AppRoutes, RouteContract} from '@gravity-ui/expresskit';
 import {NodeKit} from '@gravity-ui/nodekit';
-import {z} from 'zod/v4';
+import {z} from 'zod';
 
 // Define your Zod schemas
 const TaskSchema = z.object({
@@ -196,9 +196,9 @@ import {
   withErrorContract,
   ErrorContract,
   ValidationError,
-  ResponseValidationError
+  ResponseValidationError,
 } from '@gravity-ui/expresskit';
-import {z} from 'zod/v4;
+import {z} from 'zod';
 import {NodeKit} from '@gravity-ui/nodekit';
 
 // Define your error contract with typed error responses
@@ -243,7 +243,7 @@ const config: Partial<AppConfig> = {
         res.sendError(400, {
           error: 'Invalid input',
           code: 'CUSTOM_VALIDATION_ERROR',
-          details: err.details?.issues?.map(issue => issue.message) || [],
+          details: err.details?.issues?.map((issue) => issue.message) || [],
           requestId: req.id,
         });
       } else if (err instanceof ResponseValidationError) {

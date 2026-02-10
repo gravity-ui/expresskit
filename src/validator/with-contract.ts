@@ -49,7 +49,7 @@ export function withContract<
                 Params['THeaders']
             >,
             res: ContractResponse<TConfig>,
-        ) => Promise<void> | void,
+        ) => unknown,
     ) {
         const finalHandler: AppRouteHandler = async (
             expressReq: ExpressRequest,
