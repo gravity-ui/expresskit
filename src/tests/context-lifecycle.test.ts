@@ -326,4 +326,76 @@ describe('Context Lifecycle', () => {
             expect(middlewareOriginalCtx!.abortSignal.aborted).toBe(true);
         });
     });
+
+    describe('Client Disconnect Handling', () => {
+        it('should skip next middleware when context is already ended', async () => {
+            let slowMiddlewareCalled = false;
+            let nextMiddlewareCalled = false;
+
+            const slowMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
+                slowMiddlewareCalled = true;
+                // Simulate client disconnect by destroying the socket
+                req.socket.destroy();
+                // Wait for the close event handler's setImmediate to end the context
+                await new Promise<void>((resolve) => {
+                    setImmediate(() => setImmediate(() => setImmediate(resolve)));
+                });
+                next();
+            };
+
+            const nextMiddleware = (_req: Request, _res: Response, next: NextFunction) => {
+                nextMiddlewareCalled = true;
+                next();
+            };
+
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {
+                'GET /test': {
+                    beforeAuth: [slowMiddleware, nextMiddleware],
+                    handler: (_req: Request, res: Response) => {
+                        res.json({ok: true});
+                    },
+                },
+            });
+
+            await request
+                .agent(app.express)
+                .get('/test')
+                .catch(() => {});
+
+            expect(slowMiddlewareCalled).toBe(true);
+            expect(nextMiddlewareCalled).toBe(false);
+        });
+
+        it('should not throw when route handler runs after client disconnect', async () => {
+            const disconnectMiddleware = async (
+                req: Request,
+                _res: Response,
+                next: NextFunction,
+            ) => {
+                // Simulate client disconnect by destroying the socket
+                req.socket.destroy();
+                // Wait for the close event handler's setImmediate to end the context
+                await new Promise<void>((resolve) => {
+                    setImmediate(() => setImmediate(() => setImmediate(resolve)));
+                });
+                next();
+            };
+
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {
+                'GET /test': {
+                    beforeAuth: [disconnectMiddleware],
+                    handler: (_req: Request, res: Response) => {
+                        res.json({ok: true});
+                    },
+                },
+            });
+
+            await request
+                .agent(app.express)
+                .get('/test')
+                .catch(() => {});
+        });
+    });
 });
