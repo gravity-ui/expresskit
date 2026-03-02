@@ -23,7 +23,9 @@ function isAllowedMethod(method: string): method is Lowercase<HttpMethod> | 'mou
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
         const reqCtx = req.ctx;
-        if (reqCtx.isEnded()) {
+        // Skip creating child context if parent is already ended (e.g. client disconnected).
+        // Optional chaining for backward compatibility with nodekit < 2.5.0 (no abortSignal).
+        if (reqCtx.abortSignal?.aborted) {
             return next();
         }
         const ctx = reqCtx.create(`${fn.name || `noname-${i}`} middleware`);
@@ -57,7 +59,9 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     const handlerNameLocal = handlerName || fn.name || UNNAMED_CONTROLLER;
 
     const handler: AppMiddleware = async (req, res, next) => {
-        if (req.originalContext.isEnded()) {
+        // Skip creating child context if parent is already ended (e.g. client disconnected).
+        // Optional chaining for backward compatibility with nodekit < 2.5.0 (no abortSignal).
+        if (req.originalContext.abortSignal?.aborted) {
             return;
         }
         req.ctx = req.originalContext.create(handlerNameLocal);

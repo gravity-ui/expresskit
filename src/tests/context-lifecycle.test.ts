@@ -328,8 +328,9 @@ describe('Context Lifecycle', () => {
     });
 
     describe('Client Disconnect Handling', () => {
-        it('should not throw when middleware runs after client disconnect', async () => {
+        it('should skip next middleware when context is already ended', async () => {
             let slowMiddlewareCalled = false;
+            let nextMiddlewareCalled = false;
 
             const slowMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
                 slowMiddlewareCalled = true;
@@ -342,10 +343,15 @@ describe('Context Lifecycle', () => {
                 next();
             };
 
+            const nextMiddleware = (_req: Request, _res: Response, next: NextFunction) => {
+                nextMiddlewareCalled = true;
+                next();
+            };
+
             const nodekit = new NodeKit();
             const app = new ExpressKit(nodekit, {
                 'GET /test': {
-                    beforeAuth: [slowMiddleware],
+                    beforeAuth: [slowMiddleware, nextMiddleware],
                     handler: (_req: Request, res: Response) => {
                         res.json({ok: true});
                     },
@@ -358,6 +364,7 @@ describe('Context Lifecycle', () => {
                 .catch(() => {});
 
             expect(slowMiddlewareCalled).toBe(true);
+            expect(nextMiddlewareCalled).toBe(false);
         });
 
         it('should not throw when route handler runs after client disconnect', async () => {
