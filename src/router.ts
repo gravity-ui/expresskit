@@ -23,6 +23,9 @@ function isAllowedMethod(method: string): method is Lowercase<HttpMethod> | 'mou
 function wrapMiddleware(fn: AppMiddleware, i?: number): AppMiddleware {
     const result: AppMiddleware = async (req, res, next) => {
         const reqCtx = req.ctx;
+        if (reqCtx.isEnded()) {
+            return next();
+        }
         const ctx = reqCtx.create(`${fn.name || `noname-${i}`} middleware`);
 
         let ended = false;
@@ -54,6 +57,9 @@ function wrapRouteHandler(fn: AppRouteHandler, handlerName?: string) {
     const handlerNameLocal = handlerName || fn.name || UNNAMED_CONTROLLER;
 
     const handler: AppMiddleware = async (req, res, next) => {
+        if (req.originalContext.isEnded()) {
+            return;
+        }
         req.ctx = req.originalContext.create(handlerNameLocal);
         if (req.routeInfo.handlerName !== handlerNameLocal) {
             if (req.routeInfo.handlerName === UNNAMED_CONTROLLER) {

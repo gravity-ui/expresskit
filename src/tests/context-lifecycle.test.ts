@@ -326,4 +326,69 @@ describe('Context Lifecycle', () => {
             expect(middlewareOriginalCtx!.abortSignal.aborted).toBe(true);
         });
     });
+
+    describe('Client Disconnect Handling', () => {
+        it('should not throw when middleware runs after client disconnect', async () => {
+            let slowMiddlewareCalled = false;
+
+            const slowMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
+                slowMiddlewareCalled = true;
+                // Simulate client disconnect by destroying the socket
+                req.socket.destroy();
+                // Wait for the close event handler's setImmediate to end the context
+                await new Promise<void>((resolve) => {
+                    setImmediate(() => setImmediate(() => setImmediate(resolve)));
+                });
+                next();
+            };
+
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {
+                'GET /test': {
+                    beforeAuth: [slowMiddleware],
+                    handler: (_req: Request, res: Response) => {
+                        res.json({ok: true});
+                    },
+                },
+            });
+
+            await request
+                .agent(app.express)
+                .get('/test')
+                .catch(() => {});
+
+            expect(slowMiddlewareCalled).toBe(true);
+        });
+
+        it('should not throw when route handler runs after client disconnect', async () => {
+            const disconnectMiddleware = async (
+                req: Request,
+                _res: Response,
+                next: NextFunction,
+            ) => {
+                // Simulate client disconnect by destroying the socket
+                req.socket.destroy();
+                // Wait for the close event handler's setImmediate to end the context
+                await new Promise<void>((resolve) => {
+                    setImmediate(() => setImmediate(() => setImmediate(resolve)));
+                });
+                next();
+            };
+
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {
+                'GET /test': {
+                    beforeAuth: [disconnectMiddleware],
+                    handler: (_req: Request, res: Response) => {
+                        res.json({ok: true});
+                    },
+                },
+            });
+
+            await request
+                .agent(app.express)
+                .get('/test')
+                .catch(() => {});
+        });
+    });
 });
