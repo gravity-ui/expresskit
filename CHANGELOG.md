@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/gravity-ui/expresskit/compare/v3.0.1...v3.0.2) (2026-03-02)
+
+
+### Bug Fixes
+
+* guard ctx.create() against ended context after client disconnect ([#109](https://github.com/gravity-ui/expresskit/issues/109)) ([c736744](https://github.com/gravity-ui/expresskit/commit/c7367442b400ba66253947ddb50d3a53022c01fb))
+
 ## [3.0.1](https://github.com/gravity-ui/expresskit/compare/v3.0.0...v3.0.1) (2026-01-23)
 
 
