@@ -549,8 +549,16 @@ describe('withContract', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBe(
-                'Unsupported content-type. Allowed: application/x-www-form-urlencoded',
+                'Unsupported content-type. Allowed: application/x-www-form-urlencoded, got: application/json',
             );
+        });
+
+        it('should bypass content-type check if request has no body', async () => {
+            const response = await request(app).post('/custom-content-type'); // No .send() and no Content-Type header
+
+            expect(response.status).toBe(400);
+            // The error should be from Zod validation, not the Content-Type check
+            expect(response.body.error).toBe('Invalid request data');
         });
     });
 

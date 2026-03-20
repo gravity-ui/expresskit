@@ -167,16 +167,23 @@ export function withContract<
 
             // Check content type if body validation is required
             if (config.request?.body) {
-                const contentType = expressReq.headers['content-type'];
-                const allowedContentTypes = config.request?.contentType ?? ['application/json'];
+                const hasBody =
+                    expressReq.headers['transfer-encoding'] !== undefined ||
+                    (expressReq.headers['content-length'] !== undefined &&
+                        expressReq.headers['content-length'] !== '0');
 
-                if (
-                    !contentType ||
-                    !allowedContentTypes.some((type) => contentType.includes(type))
-                ) {
-                    throw new ValidationError(
-                        `Unsupported content-type. Allowed: ${allowedContentTypes.join(', ')}`,
-                    );
+                if (hasBody) {
+                    const contentType = expressReq.headers['content-type'];
+                    const allowedContentTypes = config.request?.contentType ?? ['application/json'];
+
+                    if (
+                        !contentType ||
+                        !allowedContentTypes.some((type) => contentType.includes(type))
+                    ) {
+                        throw new ValidationError(
+                            `Unsupported content-type. Allowed: ${allowedContentTypes.join(', ')}, got: ${contentType}`,
+                        );
+                    }
                 }
             }
 
