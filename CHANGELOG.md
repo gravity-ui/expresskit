@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/gravity-ui/expresskit/compare/v3.0.2...v3.0.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* bypass content-type validation for requests with empty body ([#111](https://github.com/gravity-ui/expresskit/issues/111)) ([f0a6eb0](https://github.com/gravity-ui/expresskit/commit/f0a6eb0d706e6b421919cc1897885eb053fbc0d1))
+
 ## [3.0.2](https://github.com/gravity-ui/expresskit/compare/v3.0.1...v3.0.2) (2026-03-02)
 
 
