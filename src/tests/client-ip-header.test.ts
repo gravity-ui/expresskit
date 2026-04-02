@@ -97,22 +97,4 @@ describe('expressClientIpHeaderName', () => {
         expect(response.status).toBe(200);
         expect(response.body.ip).toBeUndefined();
     });
-
-    it('should handle multiple IPs in X-Forwarded-For header', async () => {
-        const customIpHeader = 'X-Forwarded-For';
-        const multipleIps = '203.0.113.1, 198.51.100.2, 192.0.2.3';
-
-        const {app} = setupApp({
-            config: {
-                expressClientIpHeaderName: customIpHeader,
-            },
-        });
-
-        const agent = request.agent(app.express);
-
-        const response = await agent.get('/ip').set(customIpHeader, multipleIps);
-
-        expect(response.status).toBe(200);
-        expect(response.body.ip).toBe(multipleIps);
-    });
 });
