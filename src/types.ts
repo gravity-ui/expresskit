@@ -26,6 +26,7 @@ declare module '@gravity-ui/nodekit' {
         expressTrustProxyNumber?: number | boolean;
         expressCookieSecret?: string | string[];
         expressRequestIdHeaderName?: string;
+        expressClientIpHeaderName?: string;
 
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;

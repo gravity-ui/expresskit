@@ -13,6 +13,18 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             req.id = requestId;
             res.setHeader(requestIdHeaderName, requestId);
 
+            const expressClientIpHeaderName = ctx.config.expressClientIpHeaderName?.toLowerCase();
+            if (expressClientIpHeaderName) {
+                const clientIp = req.headers[expressClientIpHeaderName] as string | undefined;
+                if (clientIp) {
+                    Object.defineProperty(req, 'ip', {
+                        value: clientIp,
+                        writable: true,
+                        configurable: true,
+                    });
+                }
+            }
+
             req.routeInfo = {};
 
             const startTime = Date.now();
