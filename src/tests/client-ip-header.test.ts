@@ -32,17 +32,17 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
 };
 
 describe('expressClientIpHeaderName', () => {
-    it('should use default req.ip when expressClientIpHeaderName is not set', async () => {
+    it('should use default req.ip from X-Forwarded-For when expressClientIpHeaderName is not set', async () => {
         const {app} = setupApp();
+
+        const forwardedIp = '198.51.100.25';
 
         const agent = request.agent(app.express);
 
-        const response = await agent.get('/ip');
+        const response = await agent.get('/ip').set('X-Forwarded-For', forwardedIp);
 
         expect(response.status).toBe(200);
-        expect(response.body.ip).toBeDefined();
-        // supertest uses ::ffff:127.0.0.1 for IPv6-mapped IPv4 addresses
-        expect(response.body.ip).toMatch(/127\.0\.0\.1|::1|::ffff:127\.0\.0\.1/);
+        expect(response.body.ip).toBe(forwardedIp);
     });
 
     it('should override req.ip with value from custom header when expressClientIpHeaderName is set', async () => {
