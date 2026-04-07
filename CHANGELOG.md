@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/gravity-ui/expresskit/compare/v3.0.3...v3.1.0) (2026-04-07)
+
+
+### Features
+
+* get req.ip from custom header ([#113](https://github.com/gravity-ui/expresskit/issues/113)) ([0c8ce51](https://github.com/gravity-ui/expresskit/commit/0c8ce518cc6161d2ca61d908e6ec86a11e506c6f))
+
 ## [3.0.3](https://github.com/gravity-ui/expresskit/compare/v3.0.2...v3.0.3) (2026-03-20)
 
 
