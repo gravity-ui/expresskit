@@ -97,4 +97,26 @@ describe('expressClientIpHeaderName', () => {
         expect(response.status).toBe(200);
         expect(response.body.ip).toBeUndefined();
     });
+
+    it('should use configured header when both x-forwarded-for and x-real-ip are present', async () => {
+        const customIpHeader = 'X-Real-IP';
+        const realIp = '203.0.113.50';
+        const forwardedIp = '198.51.100.25';
+
+        const {app} = setupApp({
+            config: {
+                expressClientIpHeaderName: customIpHeader,
+            },
+        });
+
+        const agent = request.agent(app.express);
+
+        const response = await agent
+            .get('/ip')
+            .set('X-Real-IP', realIp)
+            .set('X-Forwarded-For', forwardedIp);
+
+        expect(response.status).toBe(200);
+        expect(response.body.ip).toBe(realIp);
+    });
 });
