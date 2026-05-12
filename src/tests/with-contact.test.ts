@@ -580,4 +580,84 @@ describe('withContract', () => {
             });
         });
     });
+
+    describe('handler name propagation', () => {
+        it('should propagate config.operationId to the wrapper', () => {
+            const wrapped = withContract({
+                operationId: 'createTask',
+                response: {content: {200: {schema: z.object({})}}},
+            })(async (_req, _res) => {});
+            expect(wrapped.name).toBe('createTask');
+        });
+
+        it('should propagate named handler when config.operationId is absent', () => {
+            const wrapped = withContract({
+                response: {content: {200: {schema: z.object({})}}},
+            })(function myHandler(_req, _res) {});
+            expect(wrapped.name).toBe('myHandler');
+        });
+
+        it('should prioritize config.operationId over handler.name', () => {
+            const wrapped = withContract({
+                operationId: 'createTask',
+                response: {content: {200: {schema: z.object({})}}},
+            })(function differentName(_req, _res) {});
+            expect(wrapped.name).toBe('createTask');
+        });
+
+        it('should set name to empty string for anonymous handler without config.operationId', () => {
+            const wrapped = withContract({
+                response: {content: {200: {schema: z.object({})}}},
+            })(async (_req, _res) => {});
+            expect(wrapped.name).toBe('');
+        });
+
+        it('should use config.operationId for req.routeInfo.handlerName in setupRoutes', async () => {
+            const localRoutes = {
+                'GET /name-propagation': {
+                    handler: withContract({
+                        operationId: 'getEntry',
+                        response: {content: {200: {schema: z.object({handlerName: z.string()})}}},
+                    })(async (req, res) => {
+                        res.sendTyped(200, {handlerName: req.routeInfo.handlerName || ''});
+                    }),
+                },
+            };
+            const localApp = new ExpressKit(nodekit, localRoutes).express;
+            const response = await request(localApp).get('/name-propagation').expect(200);
+            expect(response.body).toEqual({handlerName: 'getEntry'});
+        });
+
+        it('should fall through to unnamedController for anonymous handler in setupRoutes', async () => {
+            const localRoutes = {
+                'GET /anonymous-propagation': {
+                    handler: withContract({
+                        response: {content: {200: {schema: z.object({handlerName: z.string()})}}},
+                    })(async (req, res) => {
+                        res.sendTyped(200, {handlerName: req.routeInfo.handlerName || ''});
+                    }),
+                },
+            };
+            const localApp = new ExpressKit(nodekit, localRoutes).express;
+            const response = await request(localApp).get('/anonymous-propagation').expect(200);
+            expect(response.body).toEqual({handlerName: 'unnamedController'});
+        });
+
+        it('should prioritize route-level handlerName over config.operationId', async () => {
+            const localRoutes = {
+                'GET /explicit-name': {
+                    handlerName: 'explicitName',
+                    handler: withContract({
+                        operationId: 'getEntry',
+                        response: {content: {200: {schema: z.object({handlerName: z.string()})}}},
+                    })(async (req, res) => {
+                        res.sendTyped(200, {handlerName: req.routeInfo.handlerName || ''});
+                    }),
+                },
+            };
+            const localApp = new ExpressKit(nodekit, localRoutes).express;
+            const response = await request(localApp).get('/explicit-name').expect(200);
+            expect(response.body).toEqual({handlerName: 'explicitName'});
+        });
+    });
 });

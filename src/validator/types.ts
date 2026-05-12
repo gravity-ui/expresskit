@@ -78,6 +78,7 @@ interface TypedResponseMethods<TContent extends Record<number, z.ZodType | {sche
 }
 
 export interface RouteContract {
+    operationId?: string;
     request?: {
         body?: z.ZodType;
         params?: z.ZodType;
