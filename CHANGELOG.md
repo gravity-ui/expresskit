@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/gravity-ui/expresskit/compare/v3.1.0...v3.1.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **validator:** preserve handler name for telemetry and logs ([#115](https://github.com/gravity-ui/expresskit/issues/115)) ([790047a](https://github.com/gravity-ui/expresskit/commit/790047a5a6faf44ee0425b2235fdcfa5b16f8de8))
+
 ## [3.1.0](https://github.com/gravity-ui/expresskit/compare/v3.0.3...v3.1.0) (2026-04-07)
 
 
