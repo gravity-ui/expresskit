@@ -37,9 +37,7 @@ const ErrorSchema = z.object({
 
 // Configure the API endpoint
 const CreateTaskConfig = {
-  name: 'CreateTask',
   operationId: 'createTaskOperation',
-  summary: 'Creates a new task',
   request: {
     body: z.object({
       name: z.string().min(1),
@@ -121,6 +119,7 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
 
   ```typescript
   interface RouteContract {
+    operationId?: string; // Optional contract field that becomes the handler name used in logs, the per-request context, and telemetry self-stats.
     request?: {
       contentType?: string | string[]; // Allowed request content types. Default: 'application/json'
       body?: z.ZodType<any>; // Schema for req.body
@@ -142,6 +141,11 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
     };
   }
   ```
+
+  Key properties:
+
+  - `operationId`: Optional contract field that becomes the handler name used in logs, the per-request context, and telemetry self-stats — aligned with the OpenAPI Operation Object's `operationId`. The handler name resolution priority is: route-level `handlerName` > `config.operationId` > `handler.name` > `unnamedController`.
+  - `request` / `response`: Define the schemas for request and response validation.
 
 - **`settings`**: Optional settings for the contract.
 

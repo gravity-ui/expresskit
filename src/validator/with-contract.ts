@@ -200,6 +200,11 @@ export function withContract<
             await handler(enhancedReq, enhancedRes);
         };
 
+        Object.defineProperty(finalHandler, 'name', {
+            value: config.operationId || handler.name || '',
+            configurable: true,
+        });
+
         registerContract(finalHandler, config);
 
         return finalHandler;

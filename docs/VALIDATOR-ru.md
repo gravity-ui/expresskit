@@ -37,9 +37,7 @@ const ErrorSchema = z.object({
 
 // Настройте API endpoint
 const CreateTaskConfig = {
-  name: 'CreateTask',
   operationId: 'createTaskOperation',
-  summary: 'Creates a new task',
   request: {
     body: z.object({
       name: z.string().min(1),
@@ -121,6 +119,7 @@ const app = new ExpressKit(nodekit, routes);
 
   ```typescript
   interface RouteContract {
+    operationId?: string; // Опциональное поле контракта, которое становится именем обработчика, используемым в логах, контексте запроса и телеметрии.
     request?: {
       contentType?: string | string[]; // Разрешенные типы контента запроса. По умолчанию: 'application/json'
       body?: z.ZodType<any>; // Схема для req.body
@@ -142,6 +141,11 @@ const app = new ExpressKit(nodekit, routes);
     };
   }
   ```
+
+  Ключевые свойства:
+
+  - `operationId`: Опциональное поле контракта, которое становится именем обработчика, используемым в логах, контексте запроса и телеметрии — согласовано с `operationId` объекта операции OpenAPI. Приоритет разрешения имени обработчика: `handlerName` на уровне роута > `config.operationId` > `handler.name` > `unnamedController`.
+  - `request` / `response`: Определяют схемы для валидации запроса и ответа.
 
 - **`settings`**: Опциональные настройки для контракта.
 
