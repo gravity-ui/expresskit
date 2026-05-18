@@ -1,6 +1,8 @@
 /* eslint-disable callback-return */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import request from 'supertest';
+import {getEventListeners} from 'node:events';
+
 import {AppContext, NodeKit} from '@gravity-ui/nodekit';
 
 import {ExpressKit, NextFunction, Request, Response} from '..';
@@ -396,6 +398,36 @@ describe('Context Lifecycle', () => {
                 .agent(app.express)
                 .get('/test')
                 .catch(() => {});
+        });
+    });
+
+    describe('Bare app.express handler cleanup', () => {
+        it('should clean up context for handlers registered directly on app.express', async () => {
+            const nodekit = new NodeKit();
+            const app = new ExpressKit(nodekit, {});
+
+            const contexts: AppContext[] = [];
+
+            app.express.get('/bare', (req, res) => {
+                contexts.push((req as Request).originalContext);
+                res.json({ok: true});
+            });
+
+            const baseline = getEventListeners(nodekit.ctx.abortSignal, 'abort').length;
+            const N = 20;
+
+            const agent = request.agent(app.express);
+            for (let i = 0; i < N; i++) {
+                await agent.get('/bare');
+                // Wait for setImmediate in 'close' event handler to execute context cleanup
+                await new Promise((resolve) => setImmediate(resolve));
+            }
+
+            expect(getEventListeners(nodekit.ctx.abortSignal, 'abort').length).toBe(baseline);
+            expect(contexts.length).toBe(N);
+            contexts.forEach((ctx) => {
+                expect(ctx.abortSignal?.aborted).toBe(true);
+            });
         });
     });
 });

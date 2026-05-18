@@ -148,12 +148,6 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                 }
             });
 
-            res.on('close', () => {
-                setImmediate(() => {
-                    req.originalContext.end();
-                });
-            });
-
             next();
         };
 

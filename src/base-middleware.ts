@@ -93,6 +93,14 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 req.originalContext.setTag('http.status_code', statusCode);
             });
 
+            res.on('close', () => {
+                setImmediate(() => {
+                    if (!req.originalContext.abortSignal?.aborted) {
+                        req.originalContext.end();
+                    }
+                });
+            });
+
             next();
             return;
         } catch (error) {
