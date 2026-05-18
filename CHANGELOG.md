@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.2](https://github.com/gravity-ui/expresskit/compare/v3.1.1...v3.1.2) (2026-05-18)
+
+
+### Bug Fixes
+
+* resolve AppContext memory leak for direct app.express handlers ([#117](https://github.com/gravity-ui/expresskit/issues/117)) ([227004f](https://github.com/gravity-ui/expresskit/commit/227004f8e1fcee38ab07a99029c7ef6a23746961))
+
 ## [3.1.1](https://github.com/gravity-ui/expresskit/compare/v3.1.0...v3.1.1) (2026-05-12)
 
 
