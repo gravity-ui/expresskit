@@ -1,6 +1,7 @@
+import {randomUUID} from 'node:crypto';
+
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import type {Express} from 'express';
-import {v4 as uuidv4} from 'uuid';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
@@ -9,7 +10,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
         try {
             const requestIdHeaderName =
                 ctx.config.expressRequestIdHeaderName || DEFAULT_REQUEST_ID_HEADER;
-            const requestId = (req.headers[requestIdHeaderName] as string) || uuidv4();
+            const requestId = (req.headers[requestIdHeaderName] as string) || randomUUID();
             req.id = requestId;
             res.setHeader(requestIdHeaderName, requestId);
 
