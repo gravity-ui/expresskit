@@ -143,7 +143,6 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
   ```
 
   Key properties:
-
   - `operationId`: Optional contract field that becomes the handler name used in logs, the per-request context, and telemetry self-stats — aligned with the OpenAPI Operation Object's `operationId`. The handler name resolution priority is: route-level `handlerName` > `config.operationId` > `handler.name` > `unnamedController`.
   - `request` / `response`: Define the schemas for request and response validation.
 
@@ -156,7 +155,6 @@ The primary tool is the `withContract` higher-order function, which wraps Expres
   ```
 
   Key properties:
-
   - `manualValidation`: Set to `true` to disable automatic request validation.
 
 - **`handler(req, res)`**: Your Express route handler, receiving enhanced `req` and `res` objects.
@@ -176,7 +174,6 @@ The `req` object in your handler is enhanced:
 The `res` object in your handler is enhanced with the following methods:
 
 - **`res.sendTyped(statusCode, data?)`**:
-
   - Sends a JSON response with the given `statusCode`.
   - The `data` argument is **type-checked** at compile time against the schema associated with `statusCode`.
   - It **does not perform runtime validation** or data transformation.

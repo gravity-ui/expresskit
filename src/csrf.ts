@@ -30,7 +30,7 @@ export function prepareCSRFMiddleware(ctx: AppContext, routeAuthPolicy: `${AuthP
 
             const digest = hmac.update(message).digest('hex');
             return `${digest}:${timestamp}`;
-        } catch (error) {
+        } catch {
             throw new Error('Failed to build CSRF token');
         }
     }

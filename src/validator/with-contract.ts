@@ -123,9 +123,8 @@ export function withContract<
 
             enhancedRes.sendTyped = <
                 S extends keyof TConfig['response']['content'],
-                D extends InferDataFromResponseDef<
-                    TConfig['response']['content'][S]
-                > = InferDataFromResponseDef<TConfig['response']['content'][S]>,
+                D extends InferDataFromResponseDef<TConfig['response']['content'][S]> =
+                    InferDataFromResponseDef<TConfig['response']['content'][S]>,
             >(
                 statusCode: S,
                 data?: ExtractSchemaFromResponseDef<TConfig['response']['content'][S]> extends never

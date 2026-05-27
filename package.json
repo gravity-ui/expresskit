@@ -10,7 +10,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "lint": "npm run lint:code && npm run lint:other",
-    "lint:code": "eslint --ext .js,.ts .",
+    "lint:code": "eslint .",
     "lint:other": "npm run prettier -- --check",
     "prettier": "prettier '**/*.{md,yaml,yml,json}'",
     "typecheck": "tsc --noEmit",
@@ -19,36 +19,39 @@
     "prepublishOnly": "npm run build && rimraf dist/tests",
     "watch": "tsc -w",
     "dev": "tsc-watch -w --onSuccess 'jest'",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "author": "Gravity UI Team",
   "license": "MIT",
   "devDependencies": {
-    "@commitlint/cli": "^17.7.1",
-    "@commitlint/config-conventional": "^17.7.0",
-    "@gravity-ui/eslint-config": "^3.2.0",
-    "@gravity-ui/nodekit": "^2.10.1",
-    "@gravity-ui/prettier-config": "^1.1.0",
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "@gravity-ui/eslint-config": "^4.3.1",
+    "@gravity-ui/nodekit": "^2.12.1",
+    "@gravity-ui/prettier-config": "^1.1.1",
     "@gravity-ui/tsconfig": "^1.0.0",
-    "@types/accept-language-parser": "^1.5.6",
-    "@types/cookie-parser": "^1.4.3",
-    "@types/express": "^4.17.21",
-    "@types/jest": "^29.2.3",
-    "@types/node": "^18.11.9",
-    "@types/supertest": "^6.0.2",
-    "@types/uuid": "^9.0.0",
-    "eslint": "^8.57.1",
-    "husky": "^8.0.2",
-    "jest": "^29.3.1",
-    "nano-staged": "^0.8.0",
-    "prettier": "^3.3.3",
-    "rimraf": "^5.0.1",
-    "supertest": "^7.0.0",
-    "tsc-watch": "^5.0.3",
-    "typescript": "^5.6.2"
+    "@types/accept-language-parser": "^1.5.8",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^4.17.25",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.19.19",
+    "@types/supertest": "^7.2.0",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^9.39.4",
+    "husky": "^9.1.7",
+    "jest": "^30.4.2",
+    "nano-staged": "^1.0.2",
+    "prettier": "^3.8.3",
+    "rimraf": "^6.1.3",
+    "supertest": "^7.2.2",
+    "tsc-watch": "^7.2.0",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "accept-language-parser": "^1.5.0",
@@ -57,11 +60,16 @@
     "csp-header": "^5.2.1",
     "express": "^4.21.1",
     "express-csp-header": "^5.2.1",
-    "uuid": "^9.0.0",
-    "zod": "^4.0.15"
+    "uuid": "^11.1.1",
+    "zod": "^4.4.3"
   },
   "peerDependencies": {
     "@gravity-ui/nodekit": "^1.6.0 || ^2.0.0"
+  },
+  "overrides": {
+    "@gravity-ui/eslint-config": {
+      "typescript": "^6.0.3"
+    }
   },
   "nano-staged": {
     "*.{js,ts}": [
