@@ -52,7 +52,6 @@ export function setupParsers(ctx: AppContext, expressApp: Express) {
             }
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         expressApp.use(jsonParsingErrorHandler);
     }
 
