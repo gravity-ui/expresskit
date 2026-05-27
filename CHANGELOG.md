@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.3](https://github.com/gravity-ui/expresskit/compare/v3.1.2...v3.1.3) (2026-05-27)
+
+
+### Bug Fixes
+
+* update deps ([#119](https://github.com/gravity-ui/expresskit/issues/119)) ([0b69fa0](https://github.com/gravity-ui/expresskit/commit/0b69fa07f893855373140dcf4da6e2433fca27d9))
+
 ## [3.1.2](https://github.com/gravity-ui/expresskit/compare/v3.1.1...v3.1.2) (2026-05-18)
 
 
