@@ -188,3 +188,7 @@ A thin Express.js wrapper on top of NodeKit that adds request logging, tracing, 
 - **Forgetting to call `app.run()`** — routes are registered at construction, but the server only starts when you call `app.run()`.
 - **CSRF expecting an auth context** — CSRF token generation requires `appAuthHandler` to set the user id in the original context; without it, token generation fails.
 - **Using Express-style middleware that bypasses the context** — async controllers/middleware should use ExpressKit's context to preserve tracing; raw Express handlers drop it.
+
+## Documentation for AI agents
+
+Agent-readable documentation for the installed version is located in `node_modules/@gravity-ui/expresskit/dist/docs/INDEX.md`.
