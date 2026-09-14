@@ -14,6 +14,12 @@ import {
 } from './types';
 import {prepareCSRFMiddleware} from './csrf';
 
+function stripQueryString(url: string) {
+    const queryIndex = url.indexOf('?');
+
+    return queryIndex === -1 ? url : url.slice(0, queryIndex);
+}
+
 // Methods are lowercased to use it in `expressApp[method]`
 function isAllowedMethod(method: string): method is Lowercase<HttpMethod> | 'mount' {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,6 +138,11 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                     const disableSelfStats = Boolean(req.routeInfo.disableSelfStats);
 
                     if (!disableSelfStats) {
+                        // Stripping removes all query parameter values, so redaction is unnecessary in this mode.
+                        const requestUrl = ctx.config.appTelemetryChSelfStatsStripQueryParams
+                            ? stripQueryString(req.originalUrl)
+                            : ctx.utils.redactSensitiveQueryParams(req.originalUrl);
+
                         req.originalContext.stats({
                             service: 'self',
                             action: req.routeInfo.handlerName || UNNAMED_CONTROLLER,
@@ -140,7 +151,7 @@ export function setupRoutes(ctx: AppContext, expressApp: Express, routes: AppRou
                             requestId: req.originalContext.get(REQUEST_ID_PARAM_NAME) || '',
                             requestTime: req.originalContext.getTime(), // We have to use req.originalContext here to get full time
                             requestMethod: req.method,
-                            requestUrl: ctx.utils.redactSensitiveQueryParams(req.originalUrl),
+                            requestUrl,
                             traceId: req.originalContext.getTraceId() || '',
                             userId: req.originalContext.get(USER_ID_PARAM_NAME) || '',
                         });
