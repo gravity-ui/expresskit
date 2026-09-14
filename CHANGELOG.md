@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/gravity-ui/expresskit/compare/v3.1.3...v3.2.0) (2026-09-14)
+
+
+### Features
+
+* add request URL mode for self telemetry ([#125](https://github.com/gravity-ui/expresskit/issues/125)) ([38a0ea3](https://github.com/gravity-ui/expresskit/commit/38a0ea37d8d1aed0d37d1d3511f10568697c4dd8))
+
 ## [3.1.3](https://github.com/gravity-ui/expresskit/compare/v3.1.2...v3.1.3) (2026-05-27)
 
 
