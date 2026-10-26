@@ -28,6 +28,12 @@ declare module '@gravity-ui/nodekit' {
         expressRequestIdHeaderName?: string;
         expressClientIpHeaderName?: string;
 
+        /**
+         * filters automatic request INFO logs once before routing
+         * returning [false] suppresses start and completion logs but preserves 5xx error logs
+         */
+        appLoggingRequestFilter?: (req: Request) => boolean;
+
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;
         expressExtendedBodyParserJSONLimitError?: boolean;

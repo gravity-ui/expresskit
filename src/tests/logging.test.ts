@@ -26,6 +26,11 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
         },
     });
     const routes = {
+        'GET /ping-no-log': {
+            handler: (_: Request, res: Response) => {
+                res.send({status: 'ok'});
+            },
+        },
         'GET /get': {
             handler: (_: Request, res: Response) => {
                 res.status(200);
@@ -127,6 +132,95 @@ describe('log system', () => {
                 remoteAddress: expect.any(String),
                 remotePort: expect.any(Number),
             },
+        });
+    });
+
+    describe('appLoggingRequestFilter', () => {
+        it('does not log requests excluded by path, including requests with query parameters', async () => {
+            const appLoggingRequestFilter = jest.fn((req: Request) => req.path !== '/ping-no-log');
+            const {app, logger} = setupApp({config: {appLoggingRequestFilter}});
+
+            await request(app.express).get('/ping-no-log?healthcheck=true').expect(200);
+
+            expect(logger.write).not.toHaveBeenCalled();
+            expect(appLoggingRequestFilter).toHaveBeenCalledTimes(1);
+        });
+
+        it('logs request start and completion for paths allowed by the filter', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/ping-no-log'},
+            });
+            const requestId = 'allowed-request';
+
+            await request(app.express)
+                .get('/get')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(200);
+
+            expect(logger.write).toHaveBeenCalledTimes(2);
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started).toMatchObject({
+                msg: `[Express GET] Request started [${requestId}]`,
+                level: 30,
+                req: {method: 'GET', url: '/get'},
+            });
+            expect(completed).toMatchObject({
+                msg: `[Express GET] Request completed [${requestId}]`,
+                level: 30,
+                res: {statusCode: '200'},
+            });
+        });
+
+        it('still logs 5xx errors for excluded paths', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/500'},
+            });
+            const requestId = 'filtered-error';
+
+            await request(app.express)
+                .get('/500')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(500);
+
+            expect(logger.write).toHaveBeenCalledTimes(1);
+            const log = JSON.parse(logger.write.mock.calls[0][0]);
+            expect(log).toMatchObject({
+                msg: `[Express GET] Request failed [${requestId}]`,
+                level: 50,
+                req: {id: requestId, method: 'GET', url: '/500'},
+                res: {statusCode: '500'},
+            });
+        });
+
+        it('still logs handler messages for excluded paths', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/log'},
+            });
+            const requestId = 'filtered-handler';
+
+            await request(app.express)
+                .get('/log?q=filtered')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(200);
+
+            expect(logger.write).toHaveBeenCalledTimes(1);
+            const log = JSON.parse(logger.write.mock.calls[0][0]);
+            expect(log).toMatchObject({
+                msg: `[Express GET] [handler] log from handler [${requestId}]`,
+                level: 30,
+                req: {id: requestId, method: 'GET', url: '/log'},
+                query: 'filtered',
+            });
+        });
+
+        it('does not log excluded paths even when no route matches', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/missing'},
+            });
+
+            await request(app.express).get('/missing').expect(404);
+
+            expect(logger.write).not.toHaveBeenCalled();
         });
     });
 
