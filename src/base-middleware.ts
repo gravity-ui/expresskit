@@ -58,7 +58,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 url: ctx.utils.redactSensitiveQueryParams(req.path),
             });
 
-            const shouldLogRequest = ctx.config.requestLoggingFilter?.(req) ?? true;
+            const shouldLogRequest = ctx.config.appLoggingRequestFilter?.(req) ?? true;
 
             if (shouldLogRequest) {
                 const requestStartedExtra = ctx.config.appDevMode

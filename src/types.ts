@@ -32,7 +32,7 @@ declare module '@gravity-ui/nodekit' {
          * filters automatic request INFO logs once before routing
          * returning [false] suppresses start and completion logs but preserves 5xx error logs
          */
-        requestLoggingFilter?: (req: Request) => boolean;
+        appLoggingRequestFilter?: (req: Request) => boolean;
 
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;

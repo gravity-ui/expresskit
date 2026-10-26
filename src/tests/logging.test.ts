@@ -135,20 +135,20 @@ describe('log system', () => {
         });
     });
 
-    describe('requestLoggingFilter', () => {
+    describe('appLoggingRequestFilter', () => {
         it('does not log requests excluded by path, including requests with query parameters', async () => {
-            const requestLoggingFilter = jest.fn((req: Request) => req.path !== '/ping-no-log');
-            const {app, logger} = setupApp({config: {requestLoggingFilter}});
+            const appLoggingRequestFilter = jest.fn((req: Request) => req.path !== '/ping-no-log');
+            const {app, logger} = setupApp({config: {appLoggingRequestFilter}});
 
             await request(app.express).get('/ping-no-log?healthcheck=true').expect(200);
 
             expect(logger.write).not.toHaveBeenCalled();
-            expect(requestLoggingFilter).toHaveBeenCalledTimes(1);
+            expect(appLoggingRequestFilter).toHaveBeenCalledTimes(1);
         });
 
         it('logs request start and completion for paths allowed by the filter', async () => {
             const {app, logger} = setupApp({
-                config: {requestLoggingFilter: (req) => req.path !== '/ping-no-log'},
+                config: {appLoggingRequestFilter: (req) => req.path !== '/ping-no-log'},
             });
             const requestId = 'allowed-request';
 
@@ -173,7 +173,7 @@ describe('log system', () => {
 
         it('still logs 5xx errors for excluded paths', async () => {
             const {app, logger} = setupApp({
-                config: {requestLoggingFilter: (req) => req.path !== '/500'},
+                config: {appLoggingRequestFilter: (req) => req.path !== '/500'},
             });
             const requestId = 'filtered-error';
 
@@ -194,7 +194,7 @@ describe('log system', () => {
 
         it('still logs handler messages for excluded paths', async () => {
             const {app, logger} = setupApp({
-                config: {requestLoggingFilter: (req) => req.path !== '/log'},
+                config: {appLoggingRequestFilter: (req) => req.path !== '/log'},
             });
             const requestId = 'filtered-handler';
 
@@ -215,7 +215,7 @@ describe('log system', () => {
 
         it('does not log excluded paths even when no route matches', async () => {
             const {app, logger} = setupApp({
-                config: {requestLoggingFilter: (req) => req.path !== '/missing'},
+                config: {appLoggingRequestFilter: (req) => req.path !== '/missing'},
             });
 
             await request(app.express).get('/missing').expect(404);
