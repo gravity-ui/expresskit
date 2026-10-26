@@ -58,19 +58,23 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 url: ctx.utils.redactSensitiveQueryParams(req.path),
             });
 
-            const requestStartedExtra = ctx.config.appDevMode
-                ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
-                : {
-                      req: {
-                          id: requestId,
-                          method: req.method,
-                          url: ctx.utils.redactSensitiveQueryParams(req.url),
-                          headers: ctx.utils.redactSensitiveHeaders(req.headers),
-                          remoteAddress: req.socket && req.socket.remoteAddress,
-                          remotePort: req.socket && req.socket.remotePort,
-                      },
-                  };
-            req.ctx.log('Request started', requestStartedExtra);
+            const shouldLogRequest = ctx.config.requestLoggingFilter?.(req) ?? true;
+
+            if (shouldLogRequest) {
+                const requestStartedExtra = ctx.config.appDevMode
+                    ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
+                    : {
+                          req: {
+                              id: requestId,
+                              method: req.method,
+                              url: ctx.utils.redactSensitiveQueryParams(req.url),
+                              headers: ctx.utils.redactSensitiveHeaders(req.headers),
+                              remoteAddress: req.socket && req.socket.remoteAddress,
+                              remotePort: req.socket && req.socket.remotePort,
+                          },
+                      };
+                req.ctx.log('Request started', requestStartedExtra);
+            }
 
             res.on('finish', () => {
                 const statusCode = String(res.statusCode);
@@ -88,7 +92,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
 
                 if (statusCode.startsWith('5')) {
                     req.originalContext.logError('Request failed', null, responseExtra);
-                } else {
+                } else if (shouldLogRequest) {
                     req.originalContext.log('Request completed', responseExtra);
                 }
                 req.originalContext.setTag('http.status_code', statusCode);

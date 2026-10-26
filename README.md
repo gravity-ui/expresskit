@@ -25,6 +25,29 @@ const app = new ExpressKit(nodekit, {
 app.run();
 ```
 
+## Request logging
+
+Use `requestLoggingFilter` to exclude requests such as health checks from automatic
+INFO logs:
+
+```typescript
+const nodekit = new NodeKit({
+  config: {
+    requestLoggingFilter: (req) => req.path !== '/ping-db',
+  },
+});
+```
+
+The synchronous filter runs once per request in the base middleware, after the
+request context is initialized and before routing, authentication and body parsing.
+Route parameters and route metadata are not yet available. Returning `false`
+suppresses both `Request started` and `Request completed`. Without a filter,
+requests are logged as usual.
+
+`Request failed` logs for 5xx responses and logs written by application handlers
+are preserved regardless of the filter result. Tracing and self telemetry are
+unaffected.
+
 ## Self telemetry
 
 By default, self telemetry sends the original request URL. Applications with large or
