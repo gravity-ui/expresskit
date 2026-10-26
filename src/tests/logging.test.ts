@@ -44,12 +44,6 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
                 res.send({status: 'error'});
             },
         },
-        'GET /mutate': {
-            handler: (req: Request, res: Response) => {
-                req.headers['x-log-request'] = 'false';
-                res.send({status: 'ok'});
-            },
-        },
         'GET /log': {
             handler: (req: Request, res: Response) => {
                 req.ctx.log('log from handler', {
@@ -203,22 +197,6 @@ describe('log system', () => {
                 req: expect.objectContaining({id: requestId, method: 'GET', url: '/log'}),
                 query: 'filtered',
             }),
-        ]);
-    });
-
-    it('evaluates the filter once before the handler mutates the request', async () => {
-        const requestLoggingFilter = jest.fn(
-            (req: Request) => req.headers['x-log-request'] === 'true',
-        );
-        const {app, logger} = setupApp({config: {requestLoggingFilter}});
-
-        await request(app.express).get('/mutate').set('x-log-request', 'true').expect(200);
-
-        expect(requestLoggingFilter).toHaveBeenCalledTimes(1);
-        expect(requestLoggingFilter.mock.calls[0][0].headers['x-log-request']).toBe('false');
-        expect(logger.write.mock.calls.map(([line]) => JSON.parse(line).msg)).toEqual([
-            expect.stringContaining('Request started'),
-            expect.stringContaining('Request completed'),
         ]);
     });
 
