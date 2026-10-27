@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/gravity-ui/expresskit/compare/v3.2.0...v3.3.0) (2026-10-26)
+
+
+### Features
+
+* **logs:** add request logging filter ([#129](https://github.com/gravity-ui/expresskit/issues/129)) ([d00e138](https://github.com/gravity-ui/expresskit/commit/d00e138703965572388d8414c62ba5e8e366e087))
+
 ## [3.2.0](https://github.com/gravity-ui/expresskit/compare/v3.1.3...v3.2.0) (2026-09-14)
 
 
