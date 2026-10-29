@@ -1,5 +1,4 @@
 import {randomUUID} from 'node:crypto';
-import type {OutgoingHttpHeaders} from 'node:http';
 
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
 import type {Express} from 'express';
@@ -18,16 +17,6 @@ function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): P
     return Object.fromEntries(
         Object.entries(headers).filter(([name]) => names.has(name.toLowerCase())),
     ) as Partial<T>;
-}
-
-function redactResponseHeaders(ctx: AppContext, headers: OutgoingHttpHeaders) {
-    const result = ctx.utils.redactSensitiveKeys(headers);
-
-    if (typeof result.location === 'string') {
-        result.location = ctx.utils.redactSensitiveQueryParams(result.location);
-    }
-
-    return result;
 }
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
@@ -123,8 +112,7 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                               headers:
                                   appLoggingResponseHeaders === false
                                       ? undefined
-                                      : redactResponseHeaders(
-                                            ctx,
+                                      : ctx.utils.redactSensitiveHeaders(
                                             pickLoggedHeaders(
                                                 res.getHeaders(),
                                                 responseHeaderNames,
