@@ -43,6 +43,18 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
                 res.send({status: 'ok'});
             },
         },
+        'GET /redirect': {
+            handler: (_: Request, res: Response) => {
+                res.redirect('https://example.com/callback?token=secret&state=1');
+            },
+        },
+        'GET /secret-header': {
+            handler: (_: Request, res: Response) => {
+                res.setHeader('x-internal-token', 'super-secret');
+                res.status(200);
+                res.send({status: 'ok'});
+            },
+        },
         'GET /500': {
             handler: (_: Request, res: Response) => {
                 res.status(500);
@@ -132,6 +144,62 @@ describe('log system', () => {
                 remoteAddress: expect.any(String),
                 remotePort: expect.any(Number),
             },
+        });
+    });
+
+    it('redacts sensitive query params in the logged location header', async () => {
+        const {app, logger} = setupApp({config: {appSensitiveQueryParams: ['token']}});
+
+        const response = await request(app.express).get('/redirect').expect(302);
+
+        expect(response.headers.location).toBe('https://example.com/callback?token=secret&state=1');
+        const log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+        expect(log.res.headers.location).toBe(
+            'https://example.com/callback?token=%5BREDACTED%5D&state=1',
+        );
+    });
+
+    it('redacts response headers listed in appSensitiveKeys', async () => {
+        const {app, logger} = setupApp({config: {appSensitiveKeys: ['x-internal-token']}});
+
+        const response = await request(app.express).get('/secret-header').expect(200);
+
+        expect(response.headers['x-internal-token']).toBe('super-secret');
+        const log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+        expect(log.res.headers['x-internal-token']).toBe('[REDACTED]');
+    });
+
+    describe('logged headers whitelist', () => {
+        it('logs only whitelisted headers', async () => {
+            const {app, logger} = setupApp({
+                config: {
+                    appLoggingRequestHeaders: ['User-Agent'],
+                    appLoggingResponseHeaders: ['Content-Type'],
+                },
+            });
+
+            await request(app.express)
+                .get('/get')
+                .set(USER_AGENT_HEADER, 'test-agent')
+                .set('x-forwarded-for', '127.0.0.1')
+                .expect(200);
+
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started.req.headers).toStrictEqual({[USER_AGENT_HEADER]: 'test-agent'});
+            expect(completed.res.headers).toStrictEqual({'content-type': expect.any(String)});
+        });
+
+        it('omits headers when whitelists are empty', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestHeaders: [], appLoggingResponseHeaders: []},
+            });
+
+            await request(app.express).get('/get').set(USER_AGENT_HEADER, 'test-agent').expect(200);
+
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started.req.headers).toStrictEqual({});
+            expect(completed.res.headers).toStrictEqual({});
+            expect(completed.res.statusCode).toBe('200');
         });
     });
 

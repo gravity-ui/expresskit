@@ -5,7 +5,29 @@ import type {Express} from 'express';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
+function prepareHeaderNames(names?: string[]) {
+    // an empty whitelist is meaningful: it omits every header
+    if (!names) {
+        return undefined;
+    }
+
+    return new Set(names.map((name) => name.toLowerCase()));
+}
+
+function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): Partial<T> {
+    if (!names) {
+        return headers;
+    }
+
+    return Object.fromEntries(
+        Object.entries(headers).filter(([name]) => names.has(name.toLowerCase())),
+    ) as Partial<T>;
+}
+
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
+    const requestHeaderNames = prepareHeaderNames(ctx.config.appLoggingRequestHeaders);
+    const responseHeaderNames = prepareHeaderNames(ctx.config.appLoggingResponseHeaders);
+
     expressApp.use((req, res, next) => {
         try {
             const requestIdHeaderName =
@@ -68,7 +90,9 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                               id: requestId,
                               method: req.method,
                               url: ctx.utils.redactSensitiveQueryParams(req.url),
-                              headers: ctx.utils.redactSensitiveHeaders(req.headers),
+                              headers: ctx.utils.redactSensitiveHeaders(
+                                  pickLoggedHeaders(req.headers, requestHeaderNames),
+                              ),
                               remoteAddress: req.socket && req.socket.remoteAddress,
                               remotePort: req.socket && req.socket.remotePort,
                           },
@@ -86,7 +110,13 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                           res: {
                               responseTime,
                               statusCode,
-                              headers: ctx.utils.redactSensitiveKeys(res.getHeaders()),
+                              // redactSensitiveKeys is kept on top of the header redacter
+                              // so response headers listed in appSensitiveKeys stay redacted
+                              headers: ctx.utils.redactSensitiveKeys(
+                                  ctx.utils.redactSensitiveHeaders(
+                                      pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
+                                  ),
+                              ),
                           },
                       };
 
