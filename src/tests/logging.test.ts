@@ -48,6 +48,13 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
                 res.redirect('https://example.com/callback?token=secret&state=1');
             },
         },
+        'GET /secret-header': {
+            handler: (_: Request, res: Response) => {
+                res.setHeader('x-internal-token', 'super-secret');
+                res.status(200);
+                res.send({status: 'ok'});
+            },
+        },
         'GET /500': {
             handler: (_: Request, res: Response) => {
                 res.status(500);
@@ -152,6 +159,16 @@ describe('log system', () => {
         );
     });
 
+    it('redacts response headers listed in appSensitiveKeys', async () => {
+        const {app, logger} = setupApp({config: {appSensitiveKeys: ['x-internal-token']}});
+
+        const response = await request(app.express).get('/secret-header').expect(200);
+
+        expect(response.headers['x-internal-token']).toBe('super-secret');
+        const log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+        expect(log.res.headers['x-internal-token']).toBe('[REDACTED]');
+    });
+
     describe('logged headers whitelist', () => {
         it('logs only whitelisted headers', async () => {
             const {app, logger} = setupApp({
@@ -172,16 +189,16 @@ describe('log system', () => {
             expect(completed.res.headers).toStrictEqual({'content-type': expect.any(String)});
         });
 
-        it('omits headers when logging is disabled', async () => {
+        it('omits headers when whitelists are empty', async () => {
             const {app, logger} = setupApp({
-                config: {appLoggingRequestHeaders: false, appLoggingResponseHeaders: false},
+                config: {appLoggingRequestHeaders: [], appLoggingResponseHeaders: []},
             });
 
             await request(app.express).get('/get').set(USER_AGENT_HEADER, 'test-agent').expect(200);
 
             const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
-            expect(started.req).not.toHaveProperty('headers');
-            expect(completed.res).not.toHaveProperty('headers');
+            expect(started.req.headers).toStrictEqual({});
+            expect(completed.res.headers).toStrictEqual({});
             expect(completed.res.statusCode).toBe('200');
         });
     });

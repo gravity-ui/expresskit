@@ -5,8 +5,13 @@ import type {Express} from 'express';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
-function prepareHeaderNames(names?: string[] | false) {
-    return names ? new Set(names.map((name) => name.toLowerCase())) : undefined;
+function prepareHeaderNames(names?: string[]) {
+    // an empty whitelist is meaningful: it omits every header
+    if (!names) {
+        return undefined;
+    }
+
+    return new Set(names.map((name) => name.toLowerCase()));
 }
 
 function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): Partial<T> {
@@ -20,9 +25,8 @@ function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): P
 }
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
-    const {appLoggingRequestHeaders, appLoggingResponseHeaders} = ctx.config;
-    const requestHeaderNames = prepareHeaderNames(appLoggingRequestHeaders);
-    const responseHeaderNames = prepareHeaderNames(appLoggingResponseHeaders);
+    const requestHeaderNames = prepareHeaderNames(ctx.config.appLoggingRequestHeaders);
+    const responseHeaderNames = prepareHeaderNames(ctx.config.appLoggingResponseHeaders);
 
     expressApp.use((req, res, next) => {
         try {
@@ -86,12 +90,9 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                               id: requestId,
                               method: req.method,
                               url: ctx.utils.redactSensitiveQueryParams(req.url),
-                              headers:
-                                  appLoggingRequestHeaders === false
-                                      ? undefined
-                                      : ctx.utils.redactSensitiveHeaders(
-                                            pickLoggedHeaders(req.headers, requestHeaderNames),
-                                        ),
+                              headers: ctx.utils.redactSensitiveHeaders(
+                                  pickLoggedHeaders(req.headers, requestHeaderNames),
+                              ),
                               remoteAddress: req.socket && req.socket.remoteAddress,
                               remotePort: req.socket && req.socket.remotePort,
                           },
@@ -109,15 +110,13 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                           res: {
                               responseTime,
                               statusCode,
-                              headers:
-                                  appLoggingResponseHeaders === false
-                                      ? undefined
-                                      : ctx.utils.redactSensitiveHeaders(
-                                            pickLoggedHeaders(
-                                                res.getHeaders(),
-                                                responseHeaderNames,
-                                            ),
-                                        ),
+                              // redactSensitiveKeys is kept on top of the header redacter
+                              // so response headers listed in appSensitiveKeys stay redacted
+                              headers: ctx.utils.redactSensitiveKeys(
+                                  ctx.utils.redactSensitiveHeaders(
+                                      pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
+                                  ),
+                              ),
                           },
                       };
 

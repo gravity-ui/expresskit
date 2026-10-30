@@ -33,7 +33,7 @@
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@gravity-ui/eslint-config": "^4.3.1",
-    "@gravity-ui/nodekit": "^2.12.1",
+    "@gravity-ui/nodekit": "^2.21.0",
     "@gravity-ui/prettier-config": "^1.1.1",
     "@gravity-ui/tsconfig": "^1.0.0",
     "@types/accept-language-parser": "^1.5.8",
