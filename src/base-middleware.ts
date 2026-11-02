@@ -110,8 +110,11 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                           res: {
                               responseTime,
                               statusCode,
-                              // redactSensitiveKeys is kept on top of the header redacter
-                              // so response headers listed in appSensitiveKeys stay redacted
+                              // TODO: drop the redactSensitiveKeys pass in the next major,
+                              // appSensitiveHeaders should be the only option for response headers.
+                              // It is kept on top of the header redacter for backward compatibility:
+                              // before the switch to redactSensitiveHeaders response headers were
+                              // redacted by key, so appSensitiveKeys was the only working option
                               headers: ctx.utils.redactSensitiveKeys(
                                   ctx.utils.redactSensitiveHeaders(
                                       pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
