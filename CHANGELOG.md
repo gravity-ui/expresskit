@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.0](https://github.com/gravity-ui/expresskit/compare/v3.3.0...v3.4.0) (2026-11-02)
+
+
+### Features
+
+* add headers white list ([#131](https://github.com/gravity-ui/expresskit/issues/131)) ([34f66d6](https://github.com/gravity-ui/expresskit/commit/34f66d6f50057cecd3cc5f40738b96200fee7dd2))
+
 ## [3.3.0](https://github.com/gravity-ui/expresskit/compare/v3.2.0...v3.3.0) (2026-10-26)
 
 
