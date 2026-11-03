@@ -46,6 +46,12 @@ declare module '@gravity-ui/nodekit' {
          */
         appLoggingResponseHeaders?: string[];
 
+        appLoggingErrorRequestHeaders?: string[];
+
+        appLoggingErrorResponseHeaders?: string[];
+
+        appLoggingResponseExtra?: (req: Request, res: Response) => Record<string, unknown> | void;
+
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;
         expressExtendedBodyParserJSONLimitError?: boolean;
