@@ -6,10 +6,9 @@ export type Exact<TExpected, TProvided extends TExpected> =
     Exclude<keyof TProvided, keyof TExpected> extends never
         ? TProvided
         : TExpected & {
-              [K in Exclude<
-                  keyof TProvided,
-                  keyof TExpected
-              >]: `Error: Unexpected property '${Extract<K, string>}'`;
+              [
+                  K in Exclude<keyof TProvided, keyof TExpected>
+              ]: `Error: Unexpected property '${Extract<K, string>}'`;
           };
 
 export interface ContractRequest<

@@ -73,8 +73,7 @@ declare module '@gravity-ui/nodekit' {
 
         expressCspEnable?: boolean;
         expressCspPresets?:
-            | CSPPreset
-            | ((params: {getDefaultPresets: typeof getDefaultPresets}) => CSPPreset);
+            CSPPreset | ((params: {getDefaultPresets: typeof getDefaultPresets}) => CSPPreset);
         expressCspReportOnly?: boolean;
         expressCspReportTo?: CSPMiddlewareParams['reportTo'];
         expressCspReportUri?: CSPMiddlewareParams['reportUri'];
