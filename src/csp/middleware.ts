@@ -1,3 +1,4 @@
+import type {RequestHandler} from 'express';
 import {expressCspHeader} from 'express-csp-header';
 import type {ExpressCSPParams} from 'express-csp-header';
 
@@ -15,7 +16,7 @@ export interface CSPMiddlewareParams extends Omit<ExpressCSPParams, 'presets'> {
           }) => CSPPreset);
 }
 
-export function cspMiddleware(options: CSPMiddlewareParams) {
+export function cspMiddleware(options: CSPMiddlewareParams): RequestHandler {
     let presets: CSPPreset = options.appPresets;
     if (options.routePresets) {
         presets =
