@@ -4,8 +4,9 @@
     "outDir": "dist",
     "rootDir": "./src",
     "declaration": true,
-    "ignoreDeprecations": "6.0",
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "module": "node16",
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*.ts"],
   "excludeDirectories": ["**/node_modules", "dist"]
