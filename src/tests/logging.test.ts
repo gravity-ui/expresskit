@@ -26,6 +26,11 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
         },
     });
     const routes = {
+        'GET /ping-no-log': {
+            handler: (_: Request, res: Response) => {
+                res.send({status: 'ok'});
+            },
+        },
         'GET /get': {
             handler: (_: Request, res: Response) => {
                 res.status(200);
@@ -34,6 +39,18 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
         },
         'POST /post': {
             handler: (_: Request, res: Response) => {
+                res.status(200);
+                res.send({status: 'ok'});
+            },
+        },
+        'GET /redirect': {
+            handler: (_: Request, res: Response) => {
+                res.redirect('https://example.com/callback?token=secret&state=1');
+            },
+        },
+        'GET /secret-header': {
+            handler: (_: Request, res: Response) => {
+                res.setHeader('x-internal-token', 'super-secret');
                 res.status(200);
                 res.send({status: 'ok'});
             },
@@ -127,6 +144,151 @@ describe('log system', () => {
                 remoteAddress: expect.any(String),
                 remotePort: expect.any(Number),
             },
+        });
+    });
+
+    it('redacts sensitive query params in the logged location header', async () => {
+        const {app, logger} = setupApp({config: {appSensitiveQueryParams: ['token']}});
+
+        const response = await request(app.express).get('/redirect').expect(302);
+
+        expect(response.headers.location).toBe('https://example.com/callback?token=secret&state=1');
+        const log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+        expect(log.res.headers.location).toBe(
+            'https://example.com/callback?token=%5BREDACTED%5D&state=1',
+        );
+    });
+
+    it('redacts response headers listed in appSensitiveKeys', async () => {
+        const {app, logger} = setupApp({config: {appSensitiveKeys: ['x-internal-token']}});
+
+        const response = await request(app.express).get('/secret-header').expect(200);
+
+        expect(response.headers['x-internal-token']).toBe('super-secret');
+        const log = JSON.parse(logger.write.mock.calls?.pop() || '{}');
+        expect(log.res.headers['x-internal-token']).toBe('[REDACTED]');
+    });
+
+    describe('logged headers whitelist', () => {
+        it('logs only whitelisted headers', async () => {
+            const {app, logger} = setupApp({
+                config: {
+                    appLoggingRequestHeaders: ['User-Agent'],
+                    appLoggingResponseHeaders: ['Content-Type'],
+                },
+            });
+
+            await request(app.express)
+                .get('/get')
+                .set(USER_AGENT_HEADER, 'test-agent')
+                .set('x-forwarded-for', '127.0.0.1')
+                .expect(200);
+
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started.req.headers).toStrictEqual({[USER_AGENT_HEADER]: 'test-agent'});
+            expect(completed.res.headers).toStrictEqual({'content-type': expect.any(String)});
+        });
+
+        it('omits headers when whitelists are empty', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestHeaders: [], appLoggingResponseHeaders: []},
+            });
+
+            await request(app.express).get('/get').set(USER_AGENT_HEADER, 'test-agent').expect(200);
+
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started.req.headers).toStrictEqual({});
+            expect(completed.res.headers).toStrictEqual({});
+            expect(completed.res.statusCode).toBe('200');
+        });
+    });
+
+    describe('appLoggingRequestFilter', () => {
+        it('does not log requests excluded by path, including requests with query parameters', async () => {
+            const appLoggingRequestFilter = jest.fn((req: Request) => req.path !== '/ping-no-log');
+            const {app, logger} = setupApp({config: {appLoggingRequestFilter}});
+
+            await request(app.express).get('/ping-no-log?healthcheck=true').expect(200);
+
+            expect(logger.write).not.toHaveBeenCalled();
+            expect(appLoggingRequestFilter).toHaveBeenCalledTimes(1);
+        });
+
+        it('logs request start and completion for paths allowed by the filter', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/ping-no-log'},
+            });
+            const requestId = 'allowed-request';
+
+            await request(app.express)
+                .get('/get')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(200);
+
+            expect(logger.write).toHaveBeenCalledTimes(2);
+            const [started, completed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(started).toMatchObject({
+                msg: `[Express GET] Request started [${requestId}]`,
+                level: 30,
+                req: {method: 'GET', url: '/get'},
+            });
+            expect(completed).toMatchObject({
+                msg: `[Express GET] Request completed [${requestId}]`,
+                level: 30,
+                res: {statusCode: '200'},
+            });
+        });
+
+        it('still logs 5xx errors for excluded paths', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/500'},
+            });
+            const requestId = 'filtered-error';
+
+            await request(app.express)
+                .get('/500')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(500);
+
+            expect(logger.write).toHaveBeenCalledTimes(1);
+            const log = JSON.parse(logger.write.mock.calls[0][0]);
+            expect(log).toMatchObject({
+                msg: `[Express GET] Request failed [${requestId}]`,
+                level: 50,
+                req: {id: requestId, method: 'GET', url: '/500'},
+                res: {statusCode: '500'},
+            });
+        });
+
+        it('still logs handler messages for excluded paths', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/log'},
+            });
+            const requestId = 'filtered-handler';
+
+            await request(app.express)
+                .get('/log?q=filtered')
+                .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+                .expect(200);
+
+            expect(logger.write).toHaveBeenCalledTimes(1);
+            const log = JSON.parse(logger.write.mock.calls[0][0]);
+            expect(log).toMatchObject({
+                msg: `[Express GET] [handler] log from handler [${requestId}]`,
+                level: 30,
+                req: {id: requestId, method: 'GET', url: '/log'},
+                query: 'filtered',
+            });
+        });
+
+        it('does not log excluded paths even when no route matches', async () => {
+            const {app, logger} = setupApp({
+                config: {appLoggingRequestFilter: (req) => req.path !== '/missing'},
+            });
+
+            await request(app.express).get('/missing').expect(404);
+
+            expect(logger.write).not.toHaveBeenCalled();
         });
     });
 

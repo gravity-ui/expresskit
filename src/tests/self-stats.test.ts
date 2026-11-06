@@ -55,7 +55,10 @@ describe('self stats telemetry', () => {
         const agent = request.agent(app.express);
         const requestId = Math.random().toString();
 
-        await agent.get('/ping-self-stats').set(DEFAULT_REQUEST_ID_HEADER, requestId).expect(200);
+        await agent
+            .get('/ping-self-stats?filter=value')
+            .set(DEFAULT_REQUEST_ID_HEADER, requestId)
+            .expect(200);
 
         // last self stats data
         const stat = stats.mock.calls?.pop() || {};
@@ -67,8 +70,28 @@ describe('self stats telemetry', () => {
                 responseStatus: 200,
                 requestId,
                 requestMethod: 'GET',
-                requestUrl: '/ping-self-stats',
+                requestUrl: '/ping-self-stats?filter=value',
                 traceId: '',
+            },
+        ]);
+    });
+
+    it('self stats telemetry strips query string when enabled', async () => {
+        const {app, stats} = setupApp({
+            config: {
+                appTelemetryChSelfStatsStripQueryParams: true,
+            },
+        });
+
+        const agent = request.agent(app.express);
+
+        await agent.get('/ping-self-stats?filter=value&filter=other').expect(200);
+
+        const stat = stats.mock.calls?.pop() || {};
+
+        expect(stat).toMatchObject([
+            {
+                requestUrl: '/ping-self-stats',
             },
         ]);
     });

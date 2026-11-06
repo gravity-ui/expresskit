@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.4.0](https://github.com/gravity-ui/expresskit/compare/v3.3.0...v3.4.0) (2026-11-02)
+
+
+### Features
+
+* add headers white list ([#131](https://github.com/gravity-ui/expresskit/issues/131)) ([34f66d6](https://github.com/gravity-ui/expresskit/commit/34f66d6f50057cecd3cc5f40738b96200fee7dd2))
+
+## [3.3.0](https://github.com/gravity-ui/expresskit/compare/v3.2.0...v3.3.0) (2026-10-26)
+
+
+### Features
+
+* **logs:** add request logging filter ([#129](https://github.com/gravity-ui/expresskit/issues/129)) ([d00e138](https://github.com/gravity-ui/expresskit/commit/d00e138703965572388d8414c62ba5e8e366e087))
+
+## [3.2.0](https://github.com/gravity-ui/expresskit/compare/v3.1.3...v3.2.0) (2026-09-14)
+
+
+### Features
+
+* add request URL mode for self telemetry ([#125](https://github.com/gravity-ui/expresskit/issues/125)) ([38a0ea3](https://github.com/gravity-ui/expresskit/commit/38a0ea37d8d1aed0d37d1d3511f10568697c4dd8))
+
 ## [3.1.3](https://github.com/gravity-ui/expresskit/compare/v3.1.2...v3.1.3) (2026-05-27)
 
 

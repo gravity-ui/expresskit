@@ -5,7 +5,29 @@ import type {Express} from 'express';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
 
+function prepareHeaderNames(names?: string[]) {
+    // an empty whitelist is meaningful: it omits every header
+    if (!names) {
+        return undefined;
+    }
+
+    return new Set(names.map((name) => name.toLowerCase()));
+}
+
+function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): Partial<T> {
+    if (!names) {
+        return headers;
+    }
+
+    return Object.fromEntries(
+        Object.entries(headers).filter(([name]) => names.has(name.toLowerCase())),
+    ) as Partial<T>;
+}
+
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
+    const requestHeaderNames = prepareHeaderNames(ctx.config.appLoggingRequestHeaders);
+    const responseHeaderNames = prepareHeaderNames(ctx.config.appLoggingResponseHeaders);
+
     expressApp.use((req, res, next) => {
         try {
             const requestIdHeaderName =
@@ -58,19 +80,25 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                 url: ctx.utils.redactSensitiveQueryParams(req.path),
             });
 
-            const requestStartedExtra = ctx.config.appDevMode
-                ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
-                : {
-                      req: {
-                          id: requestId,
-                          method: req.method,
-                          url: ctx.utils.redactSensitiveQueryParams(req.url),
-                          headers: ctx.utils.redactSensitiveHeaders(req.headers),
-                          remoteAddress: req.socket && req.socket.remoteAddress,
-                          remotePort: req.socket && req.socket.remotePort,
-                      },
-                  };
-            req.ctx.log('Request started', requestStartedExtra);
+            const shouldLogRequest = ctx.config.appLoggingRequestFilter?.(req) ?? true;
+
+            if (shouldLogRequest) {
+                const requestStartedExtra = ctx.config.appDevMode
+                    ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
+                    : {
+                          req: {
+                              id: requestId,
+                              method: req.method,
+                              url: ctx.utils.redactSensitiveQueryParams(req.url),
+                              headers: ctx.utils.redactSensitiveHeaders(
+                                  pickLoggedHeaders(req.headers, requestHeaderNames),
+                              ),
+                              remoteAddress: req.socket && req.socket.remoteAddress,
+                              remotePort: req.socket && req.socket.remotePort,
+                          },
+                      };
+                req.ctx.log('Request started', requestStartedExtra);
+            }
 
             res.on('finish', () => {
                 const statusCode = String(res.statusCode);
@@ -82,13 +110,22 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
                           res: {
                               responseTime,
                               statusCode,
-                              headers: ctx.utils.redactSensitiveKeys(res.getHeaders()),
+                              // TODO: drop the redactSensitiveKeys pass in the next major,
+                              // appSensitiveHeaders should be the only option for response headers.
+                              // It is kept on top of the header redacter for backward compatibility:
+                              // before the switch to redactSensitiveHeaders response headers were
+                              // redacted by key, so appSensitiveKeys was the only working option
+                              headers: ctx.utils.redactSensitiveKeys(
+                                  ctx.utils.redactSensitiveHeaders(
+                                      pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
+                                  ),
+                              ),
                           },
                       };
 
                 if (statusCode.startsWith('5')) {
                     req.originalContext.logError('Request failed', null, responseExtra);
-                } else {
+                } else if (shouldLogRequest) {
                     req.originalContext.log('Request completed', responseExtra);
                 }
                 req.originalContext.setTag('http.status_code', statusCode);
