@@ -1,4 +1,4 @@
-import {ExpressKit, Request, Response} from '..';
+import {AppMountHandler, ExpressKit, Request, Response} from '..';
 import {DEFAULT_REQUEST_ID_HEADER} from '../constants';
 import {AppConfig, NodeKit} from '@gravity-ui/nodekit';
 import request from 'supertest';
@@ -69,6 +69,17 @@ const setupApp = ({config}: {config?: AppConfig} = {}) => {
                 res.status(200);
                 res.send({status: 'ok'});
             },
+        },
+        'MOUNT /mounted': {
+            handler: (({router, wrapRouteHandler}) => {
+                router.get(
+                    '/500',
+                    wrapRouteHandler((_: Request, res: Response) => {
+                        res.status(500);
+                        res.send({status: 'error'});
+                    }),
+                );
+            }) as AppMountHandler,
         },
     };
 
@@ -239,7 +250,7 @@ describe('log system', () => {
             });
         });
 
-        it('still logs 5xx errors for excluded paths', async () => {
+        it('still logs 5xx errors for excluded paths, with the suppressed request details', async () => {
             const {app, logger} = setupApp({
                 config: {appLoggingRequestFilter: (req) => req.path !== '/500'},
             });
@@ -255,7 +266,14 @@ describe('log system', () => {
             expect(log).toMatchObject({
                 msg: `[Express GET] Request failed [${requestId}]`,
                 level: 50,
-                req: {id: requestId, method: 'GET', url: '/500'},
+                req: {
+                    id: requestId,
+                    method: 'GET',
+                    url: '/500',
+                    headers: {[DEFAULT_REQUEST_ID_HEADER]: requestId},
+                    remoteAddress: expect.any(String),
+                    remotePort: expect.any(Number),
+                },
                 res: {statusCode: '500'},
             });
         });
@@ -289,6 +307,64 @@ describe('log system', () => {
             await request(app.express).get('/missing').expect(404);
 
             expect(logger.write).not.toHaveBeenCalled();
+        });
+    });
+
+    it('does not repeat request details in "Request failed" when "Request started" was logged', async () => {
+        const {app, logger} = setupApp();
+        const requestId = 'logged-start-error';
+
+        await request(app.express).get('/500').set(DEFAULT_REQUEST_ID_HEADER, requestId);
+
+        const [started, failed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+        expect(started.msg).toBe(`[Express GET] Request started [${requestId}]`);
+        expect(started.req.headers).toMatchObject({[DEFAULT_REQUEST_ID_HEADER]: requestId});
+
+        expect(failed.msg).toBe(`[Express GET] Request failed [${requestId}]`);
+        // only the baseline req extra, without headers and the remote address
+        expect(failed.req).toStrictEqual({id: requestId, method: 'GET', url: '/500'});
+    });
+
+    it('keeps the full url in the suppressed request details of a mounted route', async () => {
+        const {app, logger} = setupApp({
+            config: {appLoggingRequestFilter: (req) => !req.path.startsWith('/mounted')},
+        });
+
+        await request(app.express).get('/mounted/500?q=1').expect(500);
+
+        const failed = JSON.parse(logger.write.mock.calls[0][0]);
+        expect(failed.req.url).toBe('/mounted/500?q=1');
+    });
+
+    describe('error log headers whitelist', () => {
+        it('uses appLoggingErrorResponseHeaders for the failed response headers', async () => {
+            const {app, logger} = setupApp({
+                config: {
+                    appLoggingResponseHeaders: [],
+                    appLoggingErrorResponseHeaders: ['Content-Type'],
+                },
+            });
+
+            await request(app.express).get('/500').expect(500);
+
+            const [, failed] = logger.write.mock.calls.map(([line]) => JSON.parse(line));
+            expect(failed.res.headers).toStrictEqual({'content-type': expect.any(String)});
+        });
+
+        it('falls back to appLoggingResponseHeaders and applies the request whitelist', async () => {
+            const {app, logger} = setupApp({
+                config: {
+                    appLoggingRequestFilter: (req) => req.path !== '/500',
+                    appLoggingRequestHeaders: ['User-Agent'],
+                    appLoggingResponseHeaders: [],
+                },
+            });
+
+            await request(app.express).get('/500').set(USER_AGENT_HEADER, 'test-agent').expect(500);
+
+            const failed = JSON.parse(logger.write.mock.calls[0][0]);
+            expect(failed.req.headers).toStrictEqual({[USER_AGENT_HEADER]: 'test-agent'});
+            expect(failed.res.headers).toStrictEqual({});
         });
     });
 
