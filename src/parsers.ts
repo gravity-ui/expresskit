@@ -27,6 +27,19 @@ function isBodyLimitError(err: Error): err is BodyLimitError {
 export function setupParsers(ctx: AppContext, expressApp: Express) {
     expressApp.use(cookieParser(ctx.config.expressCookieSecret));
 
+    if (
+        !ctx.config.expressDisableBodyParserJSON ||
+        !ctx.config.expressDisableBodyParserURLEncoded ||
+        ctx.config.expressBodyParserRawConfig
+    ) {
+        expressApp.use((req, _res, next) => {
+            if (req.body === undefined) {
+                req.body = {};
+            }
+            next();
+        });
+    }
+
     if (!ctx.config.expressDisableBodyParserJSON) {
         expressApp.use(
             bodyParser.json(ctx.config.expressBodyParserJSONConfig || DEFAULT_JSON_PARSER_CONFIG),
@@ -56,9 +69,12 @@ export function setupParsers(ctx: AppContext, expressApp: Express) {
     }
 
     if (!ctx.config.expressDisableBodyParserURLEncoded) {
+        const config = ctx.config.expressBodyParserURLEncodedConfig;
         expressApp.use(
             bodyParser.urlencoded(
-                ctx.config.expressBodyParserURLEncodedConfig || DEFAULT_URLENCODED_PARSER_CONFIG,
+                config
+                    ? {...config, extended: config.extended ?? true}
+                    : DEFAULT_URLENCODED_PARSER_CONFIG,
             ),
         );
     }
