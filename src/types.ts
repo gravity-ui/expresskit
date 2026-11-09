@@ -35,9 +35,7 @@ declare module '@gravity-ui/nodekit' {
         appLoggingRequestFilter?: (req: Request) => boolean;
 
         /**
-         * case-insensitive whitelist of request headers in the "Request started" log,
-         * and in the "Request failed" log of a request whose start log was suppressed
-         * by [appLoggingRequestFilter]
+         * case-insensitive whitelist of request headers in the "Request started" log
          * an empty array omits request headers; by default all headers are logged
          */
         appLoggingRequestHeaders?: string[];
@@ -47,12 +45,6 @@ declare module '@gravity-ui/nodekit' {
          * an empty array omits response headers; by default all headers are logged
          */
         appLoggingResponseHeaders?: string[];
-
-        /**
-         * case-insensitive whitelist of response headers in the "Request failed" log
-         * defaults to [appLoggingResponseHeaders]
-         */
-        appLoggingErrorResponseHeaders?: string[];
 
         expressDisableBodyParserJSON?: boolean;
         expressBodyParserJSONConfig?: bodyParser.OptionsJson;

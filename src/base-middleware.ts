@@ -1,22 +1,9 @@
 import {randomUUID} from 'node:crypto';
 
 import {type AppContext, REQUEST_ID_PARAM_NAME} from '@gravity-ui/nodekit';
-import type {Express, Request, Response} from 'express';
+import type {Express} from 'express';
 
 import {DEFAULT_REQUEST_ID_HEADER} from './constants';
-
-interface FinishedRequestParams {
-    req: Request;
-    res: Response;
-    requestId: string;
-    responseTime: number;
-    statusCode: string;
-    shouldLogRequest: boolean;
-}
-
-function isFailedStatus(statusCode: string) {
-    return statusCode.startsWith('5');
-}
 
 function prepareHeaderNames(names?: string[]) {
     // an empty whitelist is meaningful: it omits every header
@@ -38,64 +25,8 @@ function pickLoggedHeaders<T extends object>(headers: T, names?: Set<string>): P
 }
 
 export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
-    const allowedHeaderNames = {
-        request: prepareHeaderNames(ctx.config.appLoggingRequestHeaders),
-        response: prepareHeaderNames(ctx.config.appLoggingResponseHeaders),
-        errorResponse: prepareHeaderNames(
-            ctx.config.appLoggingErrorResponseHeaders ?? ctx.config.appLoggingResponseHeaders,
-        ),
-    };
-
-    const buildLoggedRequestInfo = (req: Request, requestId: string) => ({
-        id: requestId,
-        method: req.method,
-        url: ctx.utils.redactSensitiveQueryParams(req.originalUrl),
-        ...(ctx.config.appDevMode
-            ? {}
-            : {
-                  headers: ctx.utils.redactSensitiveHeaders(
-                      pickLoggedHeaders(req.headers, allowedHeaderNames.request),
-                  ),
-                  remoteAddress: req.socket && req.socket.remoteAddress,
-                  remotePort: req.socket && req.socket.remotePort,
-              }),
-    });
-
-    const buildFinishedExtra = ({
-        req,
-        res,
-        requestId,
-        responseTime,
-        statusCode,
-        shouldLogRequest,
-    }: FinishedRequestParams) => {
-        const isFailed = isFailedStatus(statusCode);
-        const responseHeaderNames = isFailed
-            ? allowedHeaderNames.errorResponse
-            : allowedHeaderNames.response;
-
-        return {
-            res: ctx.config.appDevMode
-                ? {responseTime, statusCode}
-                : {
-                      responseTime,
-                      statusCode,
-                      // TODO: drop the redactSensitiveKeys pass in the next major,
-                      // appSensitiveHeaders should be the only option for response headers.
-                      // It is kept on top of the header redacter for backward compatibility:
-                      // before the switch to redactSensitiveHeaders response headers were
-                      // redacted by key, so appSensitiveKeys was the only working option
-                      headers: ctx.utils.redactSensitiveKeys(
-                          ctx.utils.redactSensitiveHeaders(
-                              pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
-                          ),
-                      ),
-                  },
-            // request details are already in "Request started", so they are
-            // repeated here only when the filter suppressed that log
-            ...(isFailed && !shouldLogRequest ? {req: buildLoggedRequestInfo(req, requestId)} : {}),
-        };
-    };
+    const requestHeaderNames = prepareHeaderNames(ctx.config.appLoggingRequestHeaders);
+    const responseHeaderNames = prepareHeaderNames(ctx.config.appLoggingResponseHeaders);
 
     expressApp.use((req, res, next) => {
         try {
@@ -152,35 +83,52 @@ export function setupBaseMiddleware(ctx: AppContext, expressApp: Express) {
             const shouldLogRequest = ctx.config.appLoggingRequestFilter?.(req) ?? true;
 
             if (shouldLogRequest) {
-                req.ctx.log('Request started', {
-                    req: buildLoggedRequestInfo(req, requestId),
-                });
+                const requestStartedExtra = ctx.config.appDevMode
+                    ? {req: {url: ctx.utils.redactSensitiveQueryParams(req.url)}}
+                    : {
+                          req: {
+                              id: requestId,
+                              method: req.method,
+                              url: ctx.utils.redactSensitiveQueryParams(req.url),
+                              headers: ctx.utils.redactSensitiveHeaders(
+                                  pickLoggedHeaders(req.headers, requestHeaderNames),
+                              ),
+                              remoteAddress: req.socket && req.socket.remoteAddress,
+                              remotePort: req.socket && req.socket.remotePort,
+                          },
+                      };
+                req.ctx.log('Request started', requestStartedExtra);
             }
 
             res.on('finish', () => {
                 const statusCode = String(res.statusCode);
-                const isFailed = isFailedStatus(statusCode);
+                const responseTime = Date.now() - startTime;
 
+                const responseExtra = ctx.config.appDevMode
+                    ? {res: {responseTime, statusCode}}
+                    : {
+                          res: {
+                              responseTime,
+                              statusCode,
+                              // TODO: drop the redactSensitiveKeys pass in the next major,
+                              // appSensitiveHeaders should be the only option for response headers.
+                              // It is kept on top of the header redacter for backward compatibility:
+                              // before the switch to redactSensitiveHeaders response headers were
+                              // redacted by key, so appSensitiveKeys was the only working option
+                              headers: ctx.utils.redactSensitiveKeys(
+                                  ctx.utils.redactSensitiveHeaders(
+                                      pickLoggedHeaders(res.getHeaders(), responseHeaderNames),
+                                  ),
+                              ),
+                          },
+                      };
+
+                if (statusCode.startsWith('5')) {
+                    req.originalContext.logError('Request failed', null, responseExtra);
+                } else if (shouldLogRequest) {
+                    req.originalContext.log('Request completed', responseExtra);
+                }
                 req.originalContext.setTag('http.status_code', statusCode);
-
-                if (!isFailed && !shouldLogRequest) {
-                    return;
-                }
-
-                const extra = buildFinishedExtra({
-                    req,
-                    res,
-                    requestId,
-                    responseTime: Date.now() - startTime,
-                    statusCode,
-                    shouldLogRequest,
-                });
-
-                if (isFailed) {
-                    req.originalContext.logError('Request failed', null, extra);
-                } else {
-                    req.originalContext.log('Request completed', extra);
-                }
             });
 
             res.on('close', () => {
